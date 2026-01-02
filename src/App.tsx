@@ -9,6 +9,7 @@ import EventDetail from "./pages/EventDetail";
 import EventSubmission from "./pages/EventSubmission";
 import Referees from "./pages/Referees";
 import RefereeDetail from "./pages/RefereeDetail";
+import RefereeAssignment from "./pages/RefereeAssignment";
 import Evaluations from "./pages/Evaluations";
 import Organization from "./pages/Organization";
 import Approvals from "./pages/Approvals";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/events/submit" element={<EventSubmission />} />
           <Route path="/referees" element={<Referees />} />
           <Route path="/referees/:id" element={<RefereeDetail />} />
+          <Route path="/events/:id/assign-referees" element={<RefereeAssignment />} />
           <Route path="/evaluations" element={<Evaluations />} />
           <Route path="/organization" element={<Organization />} />
           <Route path="/approvals" element={<Approvals />} />
