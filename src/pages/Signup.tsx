@@ -49,8 +49,8 @@ export default function Signup() {
     // Simulate API call delay
     setTimeout(() => {
       setIsLoading(false);
-      // Navigate to login or dashboard on "successful" signup
-      navigate("/login");
+      // Navigate to profile completion page after signup
+      navigate("/referee/profile/complete");
     }, 1500);
   };
 
