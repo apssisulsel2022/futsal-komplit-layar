@@ -67,7 +67,7 @@ export default function Signup() {
         </div>
         
         <h1 className="text-xl font-bold text-primary-foreground mb-1">
-          Federasi Futsal
+          Asosiasi Futsal Propinsi
         </h1>
         <p className="text-sm text-primary-foreground/80">
           Sulawesi Selatan
