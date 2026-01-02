@@ -28,8 +28,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Signup />} />
+          {/* <Route path="/" element={<Dashboard />} /> */}
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/events/submit" element={<EventSubmission />} />
