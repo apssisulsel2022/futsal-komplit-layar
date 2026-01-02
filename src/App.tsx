@@ -10,6 +10,7 @@ import Referees from "./pages/Referees";
 import RefereeDetail from "./pages/RefereeDetail";
 import Evaluations from "./pages/Evaluations";
 import Organization from "./pages/Organization";
+import Approvals from "./pages/Approvals";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/referees/:id" element={<RefereeDetail />} />
           <Route path="/evaluations" element={<Evaluations />} />
           <Route path="/organization" element={<Organization />} />
+          <Route path="/approvals" element={<Approvals />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
