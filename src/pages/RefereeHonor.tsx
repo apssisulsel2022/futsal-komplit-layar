@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useHonors, useCreateHonor, useUpdateHonor, useHonorStats, Honor } from "@/hooks/useHonors";
+import { useHonors, useCreateHonor, useUpdateHonor, useSubmitHonor, useHonorStatistics, Honor } from "@/hooks/useHonors";
 import { useEvents } from "@/hooks/useEvents";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -106,9 +106,10 @@ export default function RefereeHonor() {
   // Hooks
   const { data: honors, isLoading: honorsLoading } = useHonors();
   const { data: events } = useEvents();
-  const { data: honorStats } = useHonorStats();
+  const { data: honorStats } = useHonorStatistics();
   const createHonor = useCreateHonor();
   const updateHonor = useUpdateHonor();
+  const submitHonor = useSubmitHonor();
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/referee" },
@@ -187,9 +188,8 @@ export default function RefereeHonor() {
   };
 
   const submitDraft = async (entry: Honor) => {
-    await updateHonor.mutateAsync({
+    await submitHonor.mutateAsync({
       id: entry.id,
-      status: "submitted",
     });
   };
 
@@ -219,7 +219,7 @@ export default function RefereeHonor() {
                 <span className="text-xs text-muted-foreground">Terverifikasi</span>
               </div>
               <p className="text-lg font-bold text-success">
-                {formatCurrency(honorStats?.verified || 0)}
+                {formatCurrency(honorStats?.total_earned || 0)}
               </p>
             </CardContent>
           </Card>
@@ -230,7 +230,7 @@ export default function RefereeHonor() {
                 <span className="text-xs text-muted-foreground">Menunggu</span>
               </div>
               <p className="text-lg font-bold text-warning">
-                {formatCurrency(honorStats?.pending || 0)}
+                {formatCurrency(honorStats?.pending_amount || 0)}
               </p>
             </CardContent>
           </Card>

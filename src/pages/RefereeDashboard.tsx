@@ -139,7 +139,7 @@ export default function RefereeDashboard() {
                 <DollarSign className="h-4 w-4 text-success" />
               </div>
               <p className="text-lg font-bold">
-                {honorStats?.verified ? formatCurrency(honorStats.verified).replace("Rp", "").trim() : "0"}
+                {honorStats?.total_earned ? formatCurrency(honorStats.total_earned).replace("Rp", "").trim() : "0"}
               </p>
               <p className="text-[10px] text-muted-foreground leading-tight">
                 Total Honor

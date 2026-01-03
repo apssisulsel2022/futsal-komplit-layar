@@ -463,6 +463,17 @@ export type Database = {
       }
     }
     Functions: {
+      get_honor_statistics: {
+        Args: { _referee_id?: string }
+        Returns: {
+          pending_amount: number
+          referee_id: string
+          total_earned: number
+          total_pending: number
+          total_rejected: number
+          total_verified: number
+        }[]
+      }
       get_referees: {
         Args: {
           _is_active?: boolean
