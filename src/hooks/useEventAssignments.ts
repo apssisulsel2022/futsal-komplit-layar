@@ -309,14 +309,12 @@ export function useConfirmAssignment() {
         .from("event_assignments")
         .select("*, event:event_id (date, status)")
         .eq("id", assignmentId)
-        .single();
+        .eq("referee_id", user?.id)
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
-      if (!assignment) throw new Error("Penugasan tidak ditemukan");
-      
-      // Verify ownership
-      if (assignment.referee_id !== user?.id) {
-        throw new Error("Anda tidak memiliki akses ke penugasan ini");
+      if (!assignment) {
+        throw new Error("Penugasan tidak ditemukan atau Anda tidak memiliki akses");
       }
 
       // Check if event hasn't started yet
@@ -334,10 +332,14 @@ export function useConfirmAssignment() {
         .from("event_assignments")
         .update({ status: newStatus })
         .eq("id", assignmentId)
+        .eq("referee_id", user?.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        throw new Error("Gagal mengupdate penugasan. Pastikan Anda memiliki akses.");
+      }
       return data;
     },
     onSuccess: (_, variables) => {
