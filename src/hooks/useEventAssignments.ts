@@ -291,8 +291,8 @@ export function useRemoveAssignment() {
 }
 
 // Helper functions
-export function getRoleBadgeVariant(role: RefereeRole) {
-  return role === "UTAMA" ? "default" : "secondary";
+export function getRoleBadgeVariant(role: RefereeRole): "primary" | "info" {
+  return role === "UTAMA" ? "primary" : "info";
 }
 
 export function getStatusBadgeVariant(status: AssignmentStatus) {

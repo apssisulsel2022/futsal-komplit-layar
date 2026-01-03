@@ -32,6 +32,7 @@ import Evaluations from "./pages/Evaluations";
 import Organization from "./pages/Organization";
 import Approvals from "./pages/Approvals";
 import UserManagement from "./pages/UserManagement";
+import AuditLogs from "./pages/AuditLogs";
 
 // Referee pages
 import RefereeDashboard from "./pages/RefereeDashboard";
@@ -85,7 +86,7 @@ const App = () => (
             <Route 
               path="/events" 
               element={
-                <ProtectedRoute requireAdmin requireProfileComplete>
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "panitia"]} requireProfileComplete>
                   <Events />
                 </ProtectedRoute>
               } 
@@ -93,7 +94,7 @@ const App = () => (
             <Route 
               path="/events/:id" 
               element={
-                <ProtectedRoute requireAdmin requireProfileComplete>
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "panitia"]} requireProfileComplete>
                   <EventDetail />
                 </ProtectedRoute>
               } 
@@ -101,7 +102,7 @@ const App = () => (
             <Route 
               path="/events/submit" 
               element={
-                <ProtectedRoute requireAdmin requireProfileComplete>
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "panitia"]} requireProfileComplete>
                   <EventSubmission />
                 </ProtectedRoute>
               } 
@@ -175,6 +176,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
                   <UserManagement />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/audit-logs" 
+              element={
+                <ProtectedRoute requireAdmin requireProfileComplete>
+                  <AuditLogs />
                 </ProtectedRoute>
               } 
             />

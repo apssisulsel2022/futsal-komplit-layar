@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { ArrowLeft, Calendar, MapPin, Users, Edit, UserPlus, CheckCircle, XCircle, Clock, Loader2, History } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Edit, UserPlus, CheckCircle, XCircle, Clock, Loader2, History, User } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useEvent, useEventApprovals, useApproveEvent, useRejectEvent, useCompleteEvent, getEventStatusDisplay, EventStatus } from "@/hooks/useEvents";
+import { useEventAssignments, getRoleBadgeVariant, getStatusBadgeVariant, RefereeRole, AssignmentStatus } from "@/hooks/useEventAssignments";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -22,6 +22,7 @@ export default function EventDetail() {
   
   const { data: event, isLoading } = useEvent(eventId || "");
   const { data: approvals } = useEventApprovals(eventId || "");
+  const { data: assignments, isLoading: assignmentsLoading } = useEventAssignments(eventId || "");
   const approveEvent = useApproveEvent();
   const rejectEvent = useRejectEvent();
   const completeEvent = useCompleteEvent();
@@ -78,6 +79,24 @@ export default function EventDetail() {
     await completeEvent.mutateAsync({ eventId: event.id, notes, userId: user.id });
     setShowCompleteDialog(false);
     setNotes("");
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "UTAMA": return "Wasit Utama";
+      case "CADANGAN": return "Wasit Cadangan";
+      default: return role;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "pending": return "Menunggu";
+      case "confirmed": return "Dikonfirmasi";
+      case "completed": return "Selesai";
+      case "cancelled": return "Dibatalkan";
+      default: return status;
+    }
   };
 
   return (
@@ -195,7 +214,14 @@ export default function EventDetail() {
         <Tabs defaultValue="history" className="px-4 pb-8">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="history">Riwayat</TabsTrigger>
-            <TabsTrigger value="referees">Wasit</TabsTrigger>
+            <TabsTrigger value="referees">
+              Wasit
+              {assignments && assignments.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {assignments.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="history" className="mt-4 space-y-3">
@@ -256,11 +282,41 @@ export default function EventDetail() {
                 </Button>
               </div>
             )}
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                Belum ada wasit yang ditugaskan
-              </CardContent>
-            </Card>
+            
+            {assignmentsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : assignments && assignments.length > 0 ? (
+              assignments.map((assignment) => (
+                <Card key={assignment.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{assignment.referee?.full_name || "Unknown"}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <StatusBadge status={getRoleBadgeVariant(assignment.role as RefereeRole)}>
+                            {getRoleLabel(assignment.role || "CADANGAN")}
+                          </StatusBadge>
+                          <StatusBadge status={getStatusBadgeVariant(assignment.status as AssignmentStatus)}>
+                            {getStatusLabel(assignment.status || "pending")}
+                          </StatusBadge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Belum ada wasit yang ditugaskan
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
