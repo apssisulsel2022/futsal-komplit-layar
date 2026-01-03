@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Relationships: []
+      }
       event_approvals: {
         Row: {
           action: string
@@ -499,6 +535,30 @@ export type Database = {
           total_pending_income: number
           total_referees: number
           total_verified_income: number
+        }[]
+      }
+      get_audit_logs: {
+        Args: {
+          _action?: string
+          _actor_id?: string
+          _end_date?: string
+          _entity_id?: string
+          _entity_type?: string
+          _limit?: number
+          _offset?: number
+          _start_date?: string
+        }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_name: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          new_data: Json
+          old_data: Json
         }[]
       }
       get_honor_statistics: {
