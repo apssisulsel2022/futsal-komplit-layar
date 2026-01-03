@@ -64,11 +64,24 @@ export function usePendingCount() {
 
 export function useApproveRegistration() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isAdminProvinsi, kabupatenKotaId } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "wasit" | "panitia" }) => {
-      // 1. Update profile status
+    mutationFn: async ({ 
+      userId, 
+      role, 
+      userKabupatenKotaId 
+    }: { 
+      userId: string; 
+      role: "wasit" | "panitia";
+      userKabupatenKotaId: string | null;
+    }) => {
+      // 1. Validate regional access
+      if (!isAdminProvinsi() && userKabupatenKotaId !== kabupatenKotaId) {
+        throw new Error("Tidak berhak approve user dari wilayah lain");
+      }
+
+      // 2. Update profile status
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -80,11 +93,13 @@ export function useApproveRegistration() {
 
       if (profileError) throw profileError;
 
-      // 2. Assign role
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        role: role,
-      });
+      // 3. Assign role with upsert to handle duplicate
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .upsert(
+          { user_id: userId, role: role },
+          { onConflict: "user_id" }
+        );
 
       if (roleError) throw roleError;
     },
@@ -99,11 +114,24 @@ export function useApproveRegistration() {
 
 export function useRejectRegistration() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isAdminProvinsi, kabupatenKotaId } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-      // Update profile status to rejected with reason
+    mutationFn: async ({ 
+      userId, 
+      reason,
+      userKabupatenKotaId 
+    }: { 
+      userId: string; 
+      reason: string;
+      userKabupatenKotaId: string | null;
+    }) => {
+      // 1. Validate regional access
+      if (!isAdminProvinsi() && userKabupatenKotaId !== kabupatenKotaId) {
+        throw new Error("Tidak berhak menolak user dari wilayah lain");
+      }
+
+      // 2. Update profile status to rejected with reason
       const { error } = await supabase
         .from("profiles")
         .update({

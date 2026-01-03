@@ -853,6 +853,10 @@ export type Database = {
         Args: { _kabupaten_kota_id: string; _user_id: string }
         Returns: boolean
       }
+      can_approve_registration: {
+        Args: { _admin_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_accessible_regions: { Args: { _user_id: string }; Returns: string[] }
       get_admin_dashboard_summary: {
         Args: {

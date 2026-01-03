@@ -78,6 +78,7 @@ export default function UserApprovals() {
       await approveRegistration.mutateAsync({
         userId: selectedUser.id,
         role: selectedUser.requested_role as "wasit" | "panitia",
+        userKabupatenKotaId: selectedUser.kabupaten_kota_id,
       });
       toast({
         title: "Pendaftaran Disetujui",
@@ -110,6 +111,7 @@ export default function UserApprovals() {
       await rejectRegistration.mutateAsync({
         userId: selectedUser.id,
         reason: rejectReason,
+        userKabupatenKotaId: selectedUser.kabupaten_kota_id,
       });
       toast({
         title: "Pendaftaran Ditolak",
