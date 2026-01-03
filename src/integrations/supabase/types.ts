@@ -307,6 +307,8 @@ export type Database = {
       profiles: {
         Row: {
           afk_origin: string | null
+          approved_at: string | null
+          approved_by: string | null
           birth_date: string | null
           created_at: string | null
           full_name: string
@@ -320,10 +322,15 @@ export type Database = {
           license_photo_url: string | null
           occupation: string | null
           profile_photo_url: string | null
+          registration_status: string | null
+          rejected_reason: string | null
+          requested_role: string | null
           updated_at: string | null
         }
         Insert: {
           afk_origin?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           birth_date?: string | null
           created_at?: string | null
           full_name: string
@@ -337,10 +344,15 @@ export type Database = {
           license_photo_url?: string | null
           occupation?: string | null
           profile_photo_url?: string | null
+          registration_status?: string | null
+          rejected_reason?: string | null
+          requested_role?: string | null
           updated_at?: string | null
         }
         Update: {
           afk_origin?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           birth_date?: string | null
           created_at?: string | null
           full_name?: string
@@ -354,9 +366,19 @@ export type Database = {
           license_photo_url?: string | null
           occupation?: string | null
           profile_photo_url?: string | null
+          registration_status?: string | null
+          rejected_reason?: string | null
+          requested_role?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_kabupaten_kota_id_fkey"
             columns: ["kabupaten_kota_id"]
@@ -474,6 +496,18 @@ export type Database = {
           total_verified: number
         }[]
       }
+      get_pending_registrations: {
+        Args: never
+        Returns: {
+          created_at: string
+          full_name: string
+          id: string
+          kabupaten_kota_id: string
+          kabupaten_kota_name: string
+          registration_status: string
+          requested_role: string
+        }[]
+      }
       get_referees: {
         Args: {
           _is_active?: boolean
@@ -494,6 +528,22 @@ export type Database = {
           license_expiry: string
           license_level: string
           profile_photo_url: string
+        }[]
+      }
+      get_registration_history: {
+        Args: never
+        Returns: {
+          approved_at: string
+          approved_by: string
+          approver_name: string
+          created_at: string
+          full_name: string
+          id: string
+          kabupaten_kota_id: string
+          kabupaten_kota_name: string
+          registration_status: string
+          rejected_reason: string
+          requested_role: string
         }[]
       }
       get_user_kabupaten_kota: { Args: { _user_id: string }; Returns: string }

@@ -15,6 +15,9 @@ import PublicRefereeList from "./pages/PublicRefereeList";
 import PublicRefereeDetail from "./pages/PublicRefereeDetail";
 import PublicReviewSubmit from "./pages/PublicReviewSubmit";
 import ReviewSuccess from "./pages/ReviewSuccess";
+import Signup from "./pages/Signup";
+import PendingApproval from "./pages/PendingApproval";
+import UserApprovals from "./pages/UserApprovals";
 
 // Admin pages
 import Dashboard from "./pages/Dashboard";
@@ -55,7 +58,10 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             
             <Route 
@@ -153,6 +159,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
                   <Approvals />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/user-approvals" 
+              element={
+                <ProtectedRoute requireAdmin requireProfileComplete>
+                  <UserApprovals />
                 </ProtectedRoute>
               } 
             />

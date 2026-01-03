@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin_provinsi" | "admin_kab_kota" | "panitia" | "wasit" | "evaluator";
+export type RegistrationStatus = "pending" | "approved" | "rejected" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +12,8 @@ interface AuthContextType {
   role: AppRole | null;
   isProfileComplete: boolean;
   kabupatenKotaId: string | null;
+  registrationStatus: RegistrationStatus;
+  requestedRole: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -27,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [kabupatenKotaId, setKabupatenKotaId] = useState<string | null>(null);
+  const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>(null);
+  const [requestedRole, setRequestedRole] = useState<string | null>(null);
 
   const fetchUserRole = async (userId: string) => {
     const { data } = await supabase
@@ -45,13 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfileStatus = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("is_profile_complete, kabupaten_kota_id")
+      .select("is_profile_complete, kabupaten_kota_id, registration_status, requested_role")
       .eq("id", userId)
       .maybeSingle();
     
     if (data) {
       setIsProfileComplete(data.is_profile_complete || false);
       setKabupatenKotaId(data.kabupaten_kota_id || null);
+      setRegistrationStatus(data.registration_status as RegistrationStatus);
+      setRequestedRole(data.requested_role || null);
     }
   };
 
@@ -118,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     setIsProfileComplete(false);
     setKabupatenKotaId(null);
+    setRegistrationStatus(null);
+    setRequestedRole(null);
   };
 
   const isAdmin = () => {
@@ -137,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         isProfileComplete,
         kabupatenKotaId,
+        registrationStatus,
+        requestedRole,
         signIn,
         signOut,
         refreshProfile,

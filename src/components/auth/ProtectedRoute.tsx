@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth, AppRole } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export function ProtectedRoute({
   requireProfileComplete = false,
   requireAdmin = false
 }: ProtectedRouteProps) {
-  const { user, isLoading, role, isProfileComplete, isAdmin } = useAuth();
+  const { user, isLoading, role, isProfileComplete, isAdmin, registrationStatus, signOut } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -28,6 +29,33 @@ export function ProtectedRoute({
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user registration is pending
+  if (registrationStatus === "pending") {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  // Check if user registration was rejected
+  if (registrationStatus === "rejected") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center p-8 max-w-md">
+          <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+            <XCircle className="h-8 w-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            Pendaftaran Ditolak
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Maaf, pendaftaran Anda telah ditolak oleh admin. Silakan hubungi admin untuk informasi lebih lanjut.
+          </p>
+          <Button onClick={() => signOut()} variant="outline">
+            Keluar
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Check if user has no role assigned (admin hasn't assigned yet)

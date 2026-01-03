@@ -198,7 +198,10 @@ export default function Login() {
             </Button>
 
             <div className="text-center mt-4 text-sm text-muted-foreground">
-              Hubungi admin untuk mendapatkan akun
+              Belum punya akun?{" "}
+              <Link to="/signup" className="text-primary hover:underline font-medium">
+                Daftar di sini
+              </Link>
             </div>
           </form>
         </div>
