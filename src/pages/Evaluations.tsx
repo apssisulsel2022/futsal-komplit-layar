@@ -1,95 +1,52 @@
 import { useState } from "react";
-import { Plus, Search, Filter, Star, ClipboardCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Search, Filter, Star, ClipboardCheck, TrendingUp, TrendingDown, Calendar, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-
-const evaluationStats = {
-  total: 48,
-  pending: 8,
-  avgScore: 87.5,
-  topPerformer: "Ahmad Rizky",
-};
-
-const pendingEvaluations = [
-  {
-    id: 1,
-    referee: "Ahmad Rizky",
-    event: "Liga Futsal Makassar",
-    match: "Makassar FC vs Sudiang United",
-    date: "18 Jan 2024",
-  },
-  {
-    id: 2,
-    referee: "Budi Santoso",
-    event: "Liga Futsal Makassar",
-    match: "Gowa Stars vs Maros FC",
-    date: "18 Jan 2024",
-  },
-  {
-    id: 3,
-    referee: "Cahya Putra",
-    event: "Liga Futsal Makassar",
-    match: "Tamalanrea FC vs Panakkukang FC",
-    date: "17 Jan 2024",
-  },
-];
-
-const completedEvaluations = [
-  {
-    id: 1,
-    referee: "Ahmad Rizky",
-    event: "Liga Futsal Makassar",
-    match: "Biringkanaya FC vs Rappocini United",
-    date: "17 Jan 2024",
-    score: 92,
-    trend: "up",
-  },
-  {
-    id: 2,
-    referee: "Cahya Putra",
-    event: "Liga Futsal Makassar",
-    match: "Makassar FC vs Gowa Stars",
-    date: "15 Jan 2024",
-    score: 88,
-    trend: "up",
-  },
-  {
-    id: 3,
-    referee: "Dedi Wijaya",
-    event: "Liga Futsal Makassar",
-    match: "Sudiang United vs Maros FC",
-    date: "15 Jan 2024",
-    score: 75,
-    trend: "down",
-  },
-  {
-    id: 4,
-    referee: "Budi Santoso",
-    event: "Turnamen Futsal Pelajar",
-    match: "SMAN 1 vs SMAN 3",
-    date: "12 Jan 2024",
-    score: 90,
-    trend: "up",
-  },
-];
-
-const criteriaBreakdown = [
-  { name: "Pengetahuan Peraturan", score: 92 },
-  { name: "Pengambilan Keputusan", score: 88 },
-  { name: "Penguasaan Pertandingan", score: 85 },
-  { name: "Kebugaran Fisik", score: 90 },
-  { name: "Komunikasi", score: 82 },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useEvaluations, useEvaluationCriteria } from "@/hooks/useEvaluations";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 export default function Evaluations() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
+
+  const { data: pendingEvaluations, isLoading: loadingPending } = useEvaluations("draft");
+  const { data: completedEvaluations, isLoading: loadingCompleted } = useEvaluations("submitted");
+  const { data: criteria } = useEvaluationCriteria();
+
+  const filteredPending = pendingEvaluations?.filter((e) =>
+    e.referee?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.event?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const filteredCompleted = completedEvaluations?.filter((e) =>
+    e.referee?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.event?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const avgScore = completedEvaluations?.length
+    ? completedEvaluations.reduce((acc, e) => acc + (e.total_score || 0), 0) / completedEvaluations.length
+    : 0;
+
+  const getInitials = (name: string) =>
+    name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "?";
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-success";
+    if (score >= 80) return "text-primary";
+    if (score >= 70) return "text-warning";
+    return "text-destructive";
+  };
 
   return (
     <AppLayout title="Evaluasi">
@@ -103,7 +60,7 @@ export default function Evaluations() {
                   <ClipboardCheck className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{evaluationStats.pending}</p>
+                  <p className="text-2xl font-bold">{pendingEvaluations?.length || 0}</p>
                   <p className="text-xs text-muted-foreground">Perlu Evaluasi</p>
                 </div>
               </div>
@@ -116,7 +73,7 @@ export default function Evaluations() {
                   <Star className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{evaluationStats.avgScore}</p>
+                  <p className="text-2xl font-bold">{avgScore.toFixed(1)}</p>
                   <p className="text-xs text-muted-foreground">Rata-rata Skor</p>
                 </div>
               </div>
@@ -125,22 +82,21 @@ export default function Evaluations() {
         </div>
 
         {/* Criteria Overview */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Rata-rata per Kriteria</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {criteriaBreakdown.map((criteria) => (
-              <div key={criteria.name}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm">{criteria.name}</span>
-                  <span className="text-sm font-semibold">{criteria.score}</span>
+        {criteria && criteria.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Kriteria Penilaian</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {criteria.map((c) => (
+                <div key={c.id} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{c.name}</span>
+                  <span className="text-xs bg-muted px-2 py-0.5 rounded">Bobot: {c.weight}x</span>
                 </div>
-                <Progress value={criteria.score} className="h-2" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Search */}
         <div className="flex gap-2">
@@ -163,9 +119,9 @@ export default function Evaluations() {
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="pending" className="relative">
               Menunggu
-              {evaluationStats.pending > 0 && (
+              {(pendingEvaluations?.length || 0) > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-warning text-warning-foreground rounded-full">
-                  {evaluationStats.pending}
+                  {pendingEvaluations?.length}
                 </span>
               )}
             </TabsTrigger>
@@ -173,77 +129,143 @@ export default function Evaluations() {
           </TabsList>
 
           <TabsContent value="pending" className="mt-4 space-y-3">
-            {pendingEvaluations.map((item) => (
-              <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {item.referee.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-sm">{item.referee}</p>
-                          <p className="text-xs text-muted-foreground">{item.match}</p>
-                        </div>
-                        <StatusBadge status="warning">Menunggu</StatusBadge>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-muted-foreground">{item.event}</p>
-                        <p className="text-xs text-muted-foreground">{item.date}</p>
+            {loadingPending ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-3/4" />
                       </div>
                     </div>
-                  </div>
-                  <Button className="w-full mt-3" size="sm">
-                    Mulai Evaluasi
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : filteredPending.length === 0 ? (
+              <EmptyState
+                icon={ClipboardCheck}
+                title="Tidak ada evaluasi menunggu"
+                description="Semua evaluasi sudah selesai"
+              />
+            ) : (
+              filteredPending.map((item) => (
+                <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar>
+                        <AvatarImage src={item.referee?.profile_photo_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(item.referee?.full_name || "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-sm">{item.referee?.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{item.event?.name}</p>
+                          </div>
+                          <StatusBadge status="warning">Draft</StatusBadge>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          {item.event?.date && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(item.event.date), "d MMM yyyy", { locale: localeId })}
+                            </span>
+                          )}
+                          {item.event?.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {item.event.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full mt-3"
+                      size="sm"
+                      onClick={() => navigate(`/evaluations/${item.id}`)}
+                    >
+                      Lanjutkan Evaluasi
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="completed" className="mt-4 space-y-3">
-            {completedEvaluations.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {item.referee.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-sm">{item.referee}</p>
-                          <p className="text-xs text-muted-foreground">{item.match}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {item.trend === "up" ? (
-                            <TrendingUp className="h-4 w-4 text-success" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-destructive" />
-                          )}
-                          <span className={`text-lg font-bold ${
-                            item.score >= 90 ? "text-success" : 
-                            item.score >= 80 ? "text-primary" : "text-warning"
-                          }`}>
-                            {item.score}
-                          </span>
-                        </div>
+            {loadingCompleted ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-3/4" />
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-muted-foreground">{item.event}</p>
-                        <p className="text-xs text-muted-foreground">{item.date}</p>
-                      </div>
-                      <Progress value={item.score} className="h-1.5 mt-2" />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : filteredCompleted.length === 0 ? (
+              <EmptyState
+                icon={Star}
+                title="Belum ada evaluasi selesai"
+                description="Evaluasi yang sudah disubmit akan muncul di sini"
+              />
+            ) : (
+              filteredCompleted.map((item) => (
+                <Card
+                  key={item.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/evaluations/${item.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar>
+                        <AvatarImage src={item.referee?.profile_photo_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(item.referee?.full_name || "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-sm">{item.referee?.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{item.event?.name}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4 text-success" />
+                            <span className={`text-lg font-bold ${getScoreColor(item.total_score || 0)}`}>
+                              {item.total_score?.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          {item.event?.date && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(item.event.date), "d MMM yyyy", { locale: localeId })}
+                            </span>
+                          )}
+                          {item.submitted_at && (
+                            <span>
+                              Disubmit: {format(new Date(item.submitted_at), "d MMM yyyy", { locale: localeId })}
+                            </span>
+                          )}
+                        </div>
+                        <Progress value={item.total_score || 0} className="h-1.5 mt-2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
 
@@ -251,6 +273,7 @@ export default function Evaluations() {
         <Button
           size="lg"
           className="fixed bottom-24 right-4 md:bottom-8 rounded-full shadow-lg h-14 w-14 p-0"
+          onClick={() => navigate("/evaluations/new")}
         >
           <Plus className="h-6 w-6" />
         </Button>

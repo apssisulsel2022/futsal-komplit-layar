@@ -29,6 +29,8 @@ import RefereeDetail from "./pages/RefereeDetail";
 import RefereeAssignment from "./pages/RefereeAssignment";
 import AdminHonorMonitoring from "./pages/AdminHonorMonitoring";
 import Evaluations from "./pages/Evaluations";
+import EvaluationForm from "./pages/EvaluationForm";
+import EvaluationNew from "./pages/EvaluationNew";
 import Organization from "./pages/Organization";
 import Approvals from "./pages/Approvals";
 import UserManagement from "./pages/UserManagement";
@@ -157,6 +159,22 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "evaluator"]} requireProfileComplete>
                   <Evaluations />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/evaluations/new" 
+              element={
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "evaluator"]} requireProfileComplete>
+                  <EvaluationNew />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/evaluations/:id" 
+              element={
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "evaluator"]} requireProfileComplete>
+                  <EvaluationForm />
                 </ProtectedRoute>
               } 
             />

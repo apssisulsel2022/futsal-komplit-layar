@@ -50,6 +50,163 @@ export type Database = {
         }
         Relationships: []
       }
+      evaluation_criteria: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      evaluation_scores: {
+        Row: {
+          created_at: string | null
+          criteria_id: string
+          evaluation_id: string
+          id: string
+          notes: string | null
+          score: number
+        }
+        Insert: {
+          created_at?: string | null
+          criteria_id: string
+          evaluation_id: string
+          id?: string
+          notes?: string | null
+          score: number
+        }
+        Update: {
+          created_at?: string | null
+          criteria_id?: string
+          evaluation_id?: string
+          id?: string
+          notes?: string | null
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_scores_criteria_id_fkey"
+            columns: ["criteria_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_scores_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluations: {
+        Row: {
+          created_at: string | null
+          evaluator_id: string
+          event_id: string
+          id: string
+          notes: string | null
+          referee_id: string
+          status: string | null
+          submitted_at: string | null
+          total_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          evaluator_id: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          referee_id: string
+          status?: string | null
+          submitted_at?: string | null
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          evaluator_id?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          referee_id?: string
+          status?: string | null
+          submitted_at?: string | null
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "active_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_approvals: {
         Row: {
           action: string
