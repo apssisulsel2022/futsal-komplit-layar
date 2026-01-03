@@ -4,30 +4,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, CalendarIcon, MapPin, Users, Trophy, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CalendarIcon, MapPin, Users, Trophy, CheckCircle2, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { DateRange } from "react-day-picker";
+import { useCreateEvent } from "@/hooks/useEvents";
+import { useKabupatenKotaList } from "@/hooks/useOrganization";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EventSubmission = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const createEvent = useCreateEvent();
+  const { data: kabupatenKotaList } = useKabupatenKotaList();
+  
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     eventName: "",
     location: "",
-    organizerName: "",
+    description: "",
+    category: "",
+    kabupatenKotaId: "",
   });
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [eventDate, setEventDate] = useState<Date | undefined>();
 
   const totalSteps = 3;
 
@@ -36,8 +45,8 @@ const EventSubmission = () => {
   };
 
   const isStep1Valid = formData.eventName.trim() !== "";
-  const isStep2Valid = dateRange?.from && dateRange?.to && formData.location.trim() !== "";
-  const isStep3Valid = formData.organizerName.trim() !== "";
+  const isStep2Valid = eventDate && formData.location.trim() !== "";
+  const isStep3Valid = true; // Optional fields
 
   const canProceed = () => {
     switch (currentStep) {
@@ -69,12 +78,24 @@ const EventSubmission = () => {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setShowConfirmation(false);
-    setIsSubmitted(true);
+    if (!eventDate || !user) return;
+
+    try {
+      await createEvent.mutateAsync({
+        name: formData.eventName,
+        date: format(eventDate, "yyyy-MM-dd"),
+        location: formData.location,
+        description: formData.description || undefined,
+        category: formData.category || undefined,
+        kabupaten_kota_id: formData.kabupatenKotaId || undefined,
+        created_by: user.id,
+      });
+      
+      setShowConfirmation(false);
+      setIsSubmitted(true);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   if (isSubmitted) {
@@ -96,12 +117,7 @@ const EventSubmission = () => {
             <div className="bg-muted/50 rounded-lg p-4 text-left mb-6">
               <h3 className="font-semibold mb-2">{formData.eventName}</h3>
               <p className="text-sm text-muted-foreground">
-                {dateRange?.from && dateRange?.to && (
-                  <>
-                    {format(dateRange.from, "d MMM", { locale: id })} -{" "}
-                    {format(dateRange.to, "d MMM yyyy", { locale: id })}
-                  </>
-                )}
+                {eventDate && format(eventDate, "d MMMM yyyy", { locale: id })}
               </p>
               <p className="text-sm text-muted-foreground">{formData.location}</p>
             </div>
@@ -109,7 +125,7 @@ const EventSubmission = () => {
               <Button className="w-full" onClick={() => navigate("/events")}>
                 Lihat Daftar Event
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/dashboard")}>
                 Kembali ke Dashboard
               </Button>
             </div>
@@ -156,7 +172,7 @@ const EventSubmission = () => {
                 Masukkan nama lengkap event futsal yang akan diselenggarakan
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="eventName">Nama Event *</Label>
                 <Input
@@ -165,6 +181,21 @@ const EventSubmission = () => {
                   value={formData.eventName}
                   onChange={(e) => handleInputChange("eventName", e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Kategori</Label>
+                <Select value={formData.category} onValueChange={(v) => handleInputChange("category", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="liga">Liga</SelectItem>
+                    <SelectItem value="turnamen">Turnamen</SelectItem>
+                    <SelectItem value="friendly">Pertandingan Persahabatan</SelectItem>
+                    <SelectItem value="pelajar">Pelajar</SelectItem>
+                    <SelectItem value="lainnya">Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -191,19 +222,12 @@ const EventSubmission = () => {
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !dateRange && "text-muted-foreground"
+                        !eventDate && "text-muted-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "d MMM", { locale: id })} -{" "}
-                            {format(dateRange.to, "d MMM yyyy", { locale: id })}
-                          </>
-                        ) : (
-                          format(dateRange.from, "d MMM yyyy", { locale: id })
-                        )
+                      {eventDate ? (
+                        format(eventDate, "d MMMM yyyy", { locale: id })
                       ) : (
                         <span>Pilih tanggal</span>
                       )}
@@ -211,14 +235,12 @@ const EventSubmission = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={1}
+                      mode="single"
+                      selected={eventDate}
+                      onSelect={setEventDate}
                       disabled={(date) => date < new Date()}
-                      className={cn("p-3 pointer-events-auto")}
+                      initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -237,30 +259,45 @@ const EventSubmission = () => {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label>Kabupaten/Kota</Label>
+                <Select value={formData.kabupatenKotaId} onValueChange={(v) => handleInputChange("kabupatenKotaId", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kabupaten/kota" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {kabupatenKotaList?.map((kk) => (
+                      <SelectItem key={kk.id} value={kk.id}>{kk.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 3: Organizer */}
+        {/* Step 3: Description */}
         {currentStep === 3 && (
           <Card>
             <CardHeader>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
-                <Users className="h-6 w-6 text-primary" />
+                <FileText className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-lg">Penyelenggara</CardTitle>
+              <CardTitle className="text-lg">Deskripsi</CardTitle>
               <CardDescription>
-                Masukkan nama penyelenggara atau organisasi yang bertanggung jawab
+                Tambahkan informasi tambahan tentang event (opsional)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label htmlFor="organizerName">Nama Penyelenggara *</Label>
-                <Input
-                  id="organizerName"
-                  placeholder="Contoh: Pengcab Futsal Makassar"
-                  value={formData.organizerName}
-                  onChange={(e) => handleInputChange("organizerName", e.target.value)}
+                <Label htmlFor="description">Deskripsi Event</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Jelaskan detail event, jumlah tim, format pertandingan, dll."
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  rows={5}
                 />
               </div>
             </CardContent>
@@ -298,22 +335,19 @@ const EventSubmission = () => {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Tanggal</span>
               <span className="text-sm font-medium">
-                {dateRange?.from && dateRange?.to && (
-                  <>
-                    {format(dateRange.from, "d MMM", { locale: id })} -{" "}
-                    {format(dateRange.to, "d MMM yyyy", { locale: id })}
-                  </>
-                )}
+                {eventDate && format(eventDate, "d MMMM yyyy", { locale: id })}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Lokasi</span>
               <span className="text-sm font-medium">{formData.location}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Penyelenggara</span>
-              <span className="text-sm font-medium">{formData.organizerName}</span>
-            </div>
+            {formData.category && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Kategori</span>
+                <span className="text-sm font-medium">{formData.category}</span>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
@@ -326,9 +360,9 @@ const EventSubmission = () => {
             <Button
               className="w-full sm:w-auto"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={createEvent.isPending}
             >
-              {isSubmitting ? "Mengajukan..." : "Konfirmasi & Ajukan"}
+              {createEvent.isPending ? "Mengajukan..." : "Konfirmasi & Ajukan"}
             </Button>
           </DialogFooter>
         </DialogContent>

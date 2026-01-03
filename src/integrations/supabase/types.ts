@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_approvals: {
+        Row: {
+          action: string
+          approved_by: string | null
+          created_at: string | null
+          event_id: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          to_status: string
+        }
+        Insert: {
+          action: string
+          approved_by?: string | null
+          created_at?: string | null
+          event_id: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          to_status: string
+        }
+        Update: {
+          action?: string
+          approved_by?: string | null
+          created_at?: string | null
+          event_id?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_approvals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_assignments: {
         Row: {
           created_at: string | null
@@ -67,6 +108,7 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          kabupaten_kota_id: string | null
           location: string | null
           name: string
           status: string | null
@@ -79,6 +121,7 @@ export type Database = {
           date: string
           description?: string | null
           id?: string
+          kabupaten_kota_id?: string | null
           location?: string | null
           name: string
           status?: string | null
@@ -91,6 +134,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          kabupaten_kota_id?: string | null
           location?: string | null
           name?: string
           status?: string | null
@@ -102,6 +146,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_kabupaten_kota_id_fkey"
+            columns: ["kabupaten_kota_id"]
+            isOneToOne: false
+            referencedRelation: "kabupaten_kota"
             referencedColumns: ["id"]
           },
         ]
@@ -416,6 +467,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_admin_provinsi: { Args: { _user_id: string }; Returns: boolean }
+      is_event_approved: { Args: { _event_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:

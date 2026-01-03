@@ -1,41 +1,84 @@
-import { ArrowLeft, Calendar, MapPin, Users, Trophy, Edit, UserPlus } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { ArrowLeft, Calendar, MapPin, Users, Edit, UserPlus, CheckCircle, XCircle, Clock, Loader2, History } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const eventData = {
-  id: 1,
-  name: "Liga Futsal Makassar 2024",
-  date: "15 Jan - 28 Feb 2024",
-  location: "GOR Sudiang, Makassar",
-  status: "active",
-  description: "Kompetisi liga futsal tahunan tingkat Kota Makassar dengan partisipasi 16 tim dari berbagai klub.",
-  totalMatches: 48,
-  completedMatches: 12,
-  teams: 16,
-};
-
-const matches = [
-  { id: 1, home: "Makassar FC", away: "Sudiang United", time: "09:00", date: "18 Jan", status: "upcoming", referee: "Ahmad Rizky" },
-  { id: 2, home: "Gowa Stars", away: "Maros FC", time: "11:00", date: "18 Jan", status: "upcoming", referee: "Budi Santoso" },
-  { id: 3, home: "Tamalanrea FC", away: "Panakkukang FC", time: "14:00", date: "17 Jan", status: "completed", score: "4 - 2", referee: "Cahya Putra" },
-  { id: 4, home: "Biringkanaya FC", away: "Rappocini United", time: "16:00", date: "17 Jan", status: "completed", score: "1 - 1", referee: "Ahmad Rizky" },
-];
-
-const referees = [
-  { id: 1, name: "Ahmad Rizky", role: "Wasit Utama", matches: 5, status: "active" },
-  { id: 2, name: "Budi Santoso", role: "Wasit Utama", matches: 4, status: "active" },
-  { id: 3, name: "Cahya Putra", role: "Asisten Wasit", matches: 6, status: "active" },
-  { id: 4, name: "Dedi Wijaya", role: "Asisten Wasit", matches: 3, status: "standby" },
-];
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useEvent, useEventApprovals, useApproveEvent, useRejectEvent, useCompleteEvent, getEventStatusDisplay, EventStatus } from "@/hooks/useEvents";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 export default function EventDetail() {
-  const { id } = useParams();
-  const progress = (eventData.completedMatches / eventData.totalMatches) * 100;
+  const { id: eventId } = useParams();
+  const navigate = useNavigate();
+  const { user, isAdminProvinsi } = useAuth();
+  
+  const { data: event, isLoading } = useEvent(eventId || "");
+  const { data: approvals } = useEventApprovals(eventId || "");
+  const approveEvent = useApproveEvent();
+  const rejectEvent = useRejectEvent();
+  const completeEvent = useCompleteEvent();
+
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [notes, setNotes] = useState("");
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Detail Event">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!event) {
+    return (
+      <AppLayout title="Detail Event">
+        <div className="p-4 text-center">
+          <p className="text-muted-foreground">Event tidak ditemukan</p>
+          <Button className="mt-4" onClick={() => navigate("/events")}>
+            Kembali ke Daftar Event
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const statusDisplay = getEventStatusDisplay(event.status as EventStatus);
+  const canApprove = isAdminProvinsi() && event.status === "DIAJUKAN";
+  const canComplete = isAdminProvinsi() && event.status === "DISETUJUI";
+  const canAssignReferees = event.status === "DISETUJUI";
+
+  const handleApprove = async () => {
+    if (!user) return;
+    await approveEvent.mutateAsync({ eventId: event.id, notes, userId: user.id });
+    setShowApproveDialog(false);
+    setNotes("");
+  };
+
+  const handleReject = async () => {
+    if (!user || !notes.trim()) return;
+    await rejectEvent.mutateAsync({ eventId: event.id, notes, userId: user.id });
+    setShowRejectDialog(false);
+    setNotes("");
+  };
+
+  const handleComplete = async () => {
+    if (!user) return;
+    await completeEvent.mutateAsync({ eventId: event.id, notes, userId: user.id });
+    setShowCompleteDialog(false);
+    setNotes("");
+  };
 
   return (
     <AppLayout title="Detail Event">
@@ -54,140 +97,257 @@ export default function EventDetail() {
         <div className="p-4 space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-xl font-bold">{eventData.name}</h1>
-              </div>
-              <StatusBadge status="success">Berlangsung</StatusBadge>
+              <h1 className="text-xl font-bold mb-2">{event.name}</h1>
+              <StatusBadge status={statusDisplay.variant}>
+                {statusDisplay.label}
+              </StatusBadge>
             </div>
             <Button variant="outline" size="icon">
               <Edit className="h-4 w-4" />
             </Button>
           </div>
 
-          <p className="text-sm text-muted-foreground">{eventData.description}</p>
+          {event.description && (
+            <p className="text-sm text-muted-foreground">{event.description}</p>
+          )}
 
           <div className="flex flex-wrap gap-4 text-sm">
             <span className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              {eventData.date}
+              {format(new Date(event.date), "d MMMM yyyy", { locale: id })}
             </span>
-            <span className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              {eventData.location}
-            </span>
+            {event.location && (
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                {event.location}
+              </span>
+            )}
           </div>
 
-          {/* Progress */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Progress Event</span>
-                <span className="text-sm text-muted-foreground">
-                  {eventData.completedMatches}/{eventData.totalMatches} Pertandingan
-                </span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between mt-3 text-center">
-                <div>
-                  <p className="text-2xl font-bold text-primary">{eventData.teams}</p>
-                  <p className="text-xs text-muted-foreground">Tim</p>
+          {event.kabupaten_kota && (
+            <p className="text-sm text-muted-foreground">
+              Wilayah: {event.kabupaten_kota.name}
+            </p>
+          )}
+
+          {/* Action Buttons */}
+          {(canApprove || canComplete) && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4">
+                <p className="text-sm font-medium mb-3">Aksi Admin</p>
+                <div className="flex flex-wrap gap-2">
+                  {canApprove && (
+                    <>
+                      <Button size="sm" onClick={() => setShowApproveDialog(true)}>
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Setujui
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => setShowRejectDialog(true)}>
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Tolak
+                      </Button>
+                    </>
+                  )}
+                  {canComplete && (
+                    <Button size="sm" variant="secondary" onClick={() => setShowCompleteDialog(true)}>
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Tandai Selesai
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">{eventData.completedMatches}</p>
-                  <p className="text-xs text-muted-foreground">Selesai</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Assign Referees CTA */}
+          {canAssignReferees && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Penugasan Wasit</p>
+                    <p className="text-xs text-muted-foreground">Event sudah disetujui, silakan tugaskan wasit</p>
+                  </div>
+                  <Button size="sm" asChild>
+                    <Link to={`/events/${event.id}/assign-referees`}>
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Tugaskan
+                    </Link>
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">{eventData.totalMatches - eventData.completedMatches}</p>
-                  <p className="text-xs text-muted-foreground">Tersisa</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {!canAssignReferees && event.status !== "DISETUJUI" && event.status !== "SELESAI" && (
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  Penugasan wasit hanya dapat dilakukan setelah event disetujui
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="matches" className="px-4">
+        <Tabs defaultValue="history" className="px-4 pb-8">
           <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="matches">Pertandingan</TabsTrigger>
+            <TabsTrigger value="history">Riwayat</TabsTrigger>
             <TabsTrigger value="referees">Wasit</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="matches" className="mt-4 space-y-3">
-            {matches.map((match) => (
-              <Card key={match.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground">
-                      {match.date} • {match.time}
-                    </span>
-                    <StatusBadge status={match.status === "completed" ? "success" : "info"}>
-                      {match.status === "completed" ? "Selesai" : "Mendatang"}
-                    </StatusBadge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 text-right">
-                      <p className="font-semibold text-sm">{match.home}</p>
+          <TabsContent value="history" className="mt-4 space-y-3">
+            {approvals && approvals.length > 0 ? (
+              approvals.map((approval) => (
+                <Card key={approval.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-full ${
+                        approval.action === "APPROVE" ? "bg-green-100 text-green-600" :
+                        approval.action === "REJECT" ? "bg-red-100 text-red-600" :
+                        approval.action === "COMPLETE" ? "bg-blue-100 text-blue-600" :
+                        "bg-yellow-100 text-yellow-600"
+                      }`}>
+                        {approval.action === "APPROVE" ? <CheckCircle className="h-4 w-4" /> :
+                         approval.action === "REJECT" ? <XCircle className="h-4 w-4" /> :
+                         approval.action === "COMPLETE" ? <CheckCircle className="h-4 w-4" /> :
+                         <History className="h-4 w-4" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          {approval.action === "SUBMIT" ? "Event Diajukan" :
+                           approval.action === "APPROVE" ? "Event Disetujui" :
+                           approval.action === "REJECT" ? "Event Ditolak" :
+                           approval.action === "COMPLETE" ? "Event Selesai" :
+                           approval.action}
+                        </p>
+                        {approval.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">{approval.notes}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          {approval.approver && <span>Oleh: {approval.approver.full_name}</span>}
+                          <span>•</span>
+                          <span>{format(new Date(approval.created_at), "d MMM yyyy HH:mm", { locale: id })}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="px-4">
-                      {match.score ? (
-                        <p className="font-bold text-lg">{match.score}</p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">VS</p>
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-semibold text-sm">{match.away}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <p className="text-xs text-muted-foreground">
-                      <Users className="inline h-3 w-3 mr-1" />
-                      Wasit: {match.referee}
-                    </p>
-                  </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Belum ada riwayat
                 </CardContent>
               </Card>
-            ))}
+            )}
           </TabsContent>
 
           <TabsContent value="referees" className="mt-4 space-y-3">
-            <div className="flex justify-end mb-2">
-              <Button size="sm">
-                <UserPlus className="h-4 w-4 mr-1" />
-                Tambah Wasit
-              </Button>
-            </div>
-            {referees.map((referee) => (
-              <Card key={referee.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {referee.name.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">{referee.name}</p>
-                      <p className="text-xs text-muted-foreground">{referee.role}</p>
-                    </div>
-                    <div className="text-right">
-                      <StatusBadge status={referee.status === "active" ? "success" : "warning"}>
-                        {referee.status === "active" ? "Aktif" : "Standby"}
-                      </StatusBadge>
-                      <p className="text-xs text-muted-foreground mt-1">{referee.matches} match</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {canAssignReferees && (
+              <div className="flex justify-end mb-2">
+                <Button size="sm" asChild>
+                  <Link to={`/events/${event.id}/assign-referees`}>
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Tambah Wasit
+                  </Link>
+                </Button>
+              </div>
+            )}
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Belum ada wasit yang ditugaskan
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Approve Dialog */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Setujui Event</DialogTitle>
+            <DialogDescription>
+              Event yang disetujui dapat ditugaskan wasit
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Catatan (Opsional)</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Tambahkan catatan..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>Batal</Button>
+            <Button onClick={handleApprove} disabled={approveEvent.isPending}>
+              {approveEvent.isPending ? "Menyetujui..." : "Setujui Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tolak Event</DialogTitle>
+            <DialogDescription>
+              Berikan alasan penolakan event
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Alasan Penolakan *</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Jelaskan alasan penolakan..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Batal</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={rejectEvent.isPending || !notes.trim()}>
+              {rejectEvent.isPending ? "Menolak..." : "Tolak Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete Dialog */}
+      <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Selesaikan Event</DialogTitle>
+            <DialogDescription>
+              Tandai event sebagai selesai
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Catatan (Opsional)</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Tambahkan catatan..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>Batal</Button>
+            <Button onClick={handleComplete} disabled={completeEvent.isPending}>
+              {completeEvent.isPending ? "Menyimpan..." : "Tandai Selesai"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
