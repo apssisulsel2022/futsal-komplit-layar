@@ -71,7 +71,7 @@ export default function Signup() {
     setIsLoading(true);
 
     try {
-      // 1. Create auth user with auto-confirm
+      // Create auth user - the database trigger will create the profile with pending status
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -79,6 +79,8 @@ export default function Signup() {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: formData.fullName,
+            kabupaten_kota_id: formData.kabupatenKotaId,
+            requested_role: formData.requestedRole,
           },
         },
       });
@@ -89,21 +91,7 @@ export default function Signup() {
         throw new Error("Gagal membuat akun");
       }
 
-      // 2. Update the profile with registration data
-      // The profile is created by the database trigger, we just need to update it
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: formData.fullName,
-          kabupaten_kota_id: formData.kabupatenKotaId,
-          registration_status: "pending",
-          requested_role: formData.requestedRole,
-        })
-        .eq("id", authData.user.id);
-
-      if (profileError) throw profileError;
-
-      // 3. Redirect to pending approval page
+      // Redirect to pending approval page
       navigate("/pending-approval");
     } catch (err: any) {
       console.error("Signup error:", err);
