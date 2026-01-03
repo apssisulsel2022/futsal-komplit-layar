@@ -37,13 +37,7 @@ export default function Login() {
       return;
     }
 
-    // Only wasit role requires profile completion
-    if (role === "wasit" && !isProfileComplete) {
-      navigate("/referee/profile/complete", { replace: true });
-      return;
-    }
-
-    // Redirect based on role
+    // Redirect based on role - ProtectedRoute will handle profile completion check
     if (isAdmin()) {
       navigate("/dashboard", { replace: true });
     } else if (role === "wasit") {
