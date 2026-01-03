@@ -86,6 +86,13 @@ export type Database = {
             foreignKeyName: "event_approvals_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "active_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_approvals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -94,6 +101,7 @@ export type Database = {
       event_assignments: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           event_id: string
           id: string
           referee_id: string
@@ -103,6 +111,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           event_id: string
           id?: string
           referee_id: string
@@ -112,6 +121,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           event_id?: string
           id?: string
           referee_id?: string
@@ -124,7 +134,21 @@ export type Database = {
             foreignKeyName: "event_assignments_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "active_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -142,6 +166,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           date: string
+          deleted_at: string | null
           description: string | null
           id: string
           kabupaten_kota_id: string | null
@@ -155,6 +180,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           kabupaten_kota_id?: string | null
@@ -168,6 +194,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           kabupaten_kota_id?: string | null
@@ -177,6 +204,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
@@ -197,6 +231,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string | null
+          deleted_at: string | null
           event_id: string | null
           id: string
           notes: string | null
@@ -209,6 +244,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string | null
+          deleted_at?: string | null
           event_id?: string | null
           id?: string
           notes?: string | null
@@ -221,6 +257,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string | null
+          deleted_at?: string | null
           event_id?: string | null
           id?: string
           notes?: string | null
@@ -235,6 +272,13 @@ export type Database = {
             foreignKeyName: "honors_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
+            referencedRelation: "active_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -242,7 +286,21 @@ export type Database = {
             foreignKeyName: "honors_referee_id_fkey"
             columns: ["referee_id"]
             isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -347,6 +405,7 @@ export type Database = {
           approved_by: string | null
           birth_date: string | null
           created_at: string | null
+          deleted_at: string | null
           full_name: string
           id: string
           is_active: boolean | null
@@ -369,6 +428,7 @@ export type Database = {
           approved_by?: string | null
           birth_date?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           full_name: string
           id: string
           is_active?: boolean | null
@@ -391,6 +451,7 @@ export type Database = {
           approved_by?: string | null
           birth_date?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null
@@ -408,6 +469,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_approved_by_fkey"
             columns: ["approved_by"]
@@ -478,6 +546,13 @@ export type Database = {
             foreignKeyName: "referee_reviews_referee_id_fkey"
             columns: ["referee_id"]
             isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_reviews_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -503,6 +578,252 @@ export type Database = {
       }
     }
     Views: {
+      active_events: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string | null
+          kabupaten_kota_id: string | null
+          location: string | null
+          name: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string | null
+          kabupaten_kota_id?: string | null
+          location?: string | null
+          name?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string | null
+          kabupaten_kota_id?: string | null
+          location?: string | null
+          name?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_kabupaten_kota_id_fkey"
+            columns: ["kabupaten_kota_id"]
+            isOneToOne: false
+            referencedRelation: "kabupaten_kota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      active_honors: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          deleted_at: string | null
+          event_id: string | null
+          id: string | null
+          notes: string | null
+          referee_id: string | null
+          status: string | null
+          updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string | null
+          notes?: string | null
+          referee_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string | null
+          notes?: string | null
+          referee_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "honors_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "active_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honors_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      active_profiles: {
+        Row: {
+          afk_origin: string | null
+          approved_at: string | null
+          approved_by: string | null
+          birth_date: string | null
+          created_at: string | null
+          deleted_at: string | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          is_profile_complete: boolean | null
+          kabupaten_kota_id: string | null
+          ktp_photo_url: string | null
+          license_expiry: string | null
+          license_level: string | null
+          license_photo_url: string | null
+          occupation: string | null
+          profile_photo_url: string | null
+          registration_status: string | null
+          rejected_reason: string | null
+          requested_role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          afk_origin?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_profile_complete?: boolean | null
+          kabupaten_kota_id?: string | null
+          ktp_photo_url?: string | null
+          license_expiry?: string | null
+          license_level?: string | null
+          license_photo_url?: string | null
+          occupation?: string | null
+          profile_photo_url?: string | null
+          registration_status?: string | null
+          rejected_reason?: string | null
+          requested_role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          afk_origin?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_profile_complete?: boolean | null
+          kabupaten_kota_id?: string | null
+          ktp_photo_url?: string | null
+          license_expiry?: string | null
+          license_level?: string | null
+          license_photo_url?: string | null
+          occupation?: string | null
+          profile_photo_url?: string | null
+          registration_status?: string | null
+          rejected_reason?: string | null
+          requested_role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_kabupaten_kota_id_fkey"
+            columns: ["kabupaten_kota_id"]
+            isOneToOne: false
+            referencedRelation: "kabupaten_kota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referee_review_stats: {
         Row: {
           avg_rating: number | null
@@ -514,6 +835,13 @@ export type Database = {
             foreignKeyName: "referee_reviews_referee_id_fkey"
             columns: ["referee_id"]
             isOneToOne: false
+            referencedRelation: "active_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_reviews_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -521,6 +849,11 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_region: {
+        Args: { _kabupaten_kota_id: string; _user_id: string }
+        Returns: boolean
+      }
+      get_accessible_regions: { Args: { _user_id: string }; Returns: string[] }
       get_admin_dashboard_summary: {
         Args: {
           _end_date?: string
@@ -673,6 +1006,10 @@ export type Database = {
       is_admin_provinsi: { Args: { _user_id: string }; Returns: boolean }
       is_event_approved: { Args: { _event_id: string }; Returns: boolean }
       is_referee_active: { Args: { _referee_id: string }; Returns: boolean }
+      is_same_region: {
+        Args: { _kabupaten_kota_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
