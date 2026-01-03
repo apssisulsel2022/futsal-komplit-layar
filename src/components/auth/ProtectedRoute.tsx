@@ -47,7 +47,8 @@ export function ProtectedRoute({
   }
 
   // Check if profile completion is required but not complete
-  if (requireProfileComplete && !isProfileComplete) {
+  // Only apply to wasit role
+  if (requireProfileComplete && !isProfileComplete && role === "wasit") {
     // Allow access to profile completion page
     if (location.pathname !== "/referee/profile/complete") {
       return <Navigate to="/referee/profile/complete" replace />;

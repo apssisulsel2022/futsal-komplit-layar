@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { FFSSLogo } from "@/components/reviews/FFSSLogo";
+import { z } from "zod";
+import { loginSchema } from "@/lib/validations";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -35,8 +37,8 @@ export default function Login() {
       return;
     }
 
-    // If profile not complete, go to profile completion
-    if (!isProfileComplete) {
+    // Only wasit role requires profile completion
+    if (role === "wasit" && !isProfileComplete) {
       navigate("/referee/profile/complete", { replace: true });
       return;
     }
@@ -59,14 +61,14 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    // Basic validation
-    if (!email.trim()) {
-      setError("Email tidak boleh kosong");
-      return;
-    }
-    if (!password.trim()) {
-      setError("Password tidak boleh kosong");
-      return;
+    // Validate with Zod
+    try {
+      loginSchema.parse({ email, password });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message);
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -171,13 +173,12 @@ export default function Login() {
 
             {/* Forgot Password Link */}
             <div className="text-right">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-sm text-primary hover:underline"
-                onClick={() => setError("Fitur lupa password belum tersedia")}
               >
                 Lupa Password?
-              </button>
+              </Link>
             </div>
 
             {/* Submit Button */}

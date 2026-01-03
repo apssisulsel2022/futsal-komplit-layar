@@ -102,16 +102,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update profile with kabupaten_kota_id
+    // Update profile with kabupaten_kota_id and is_profile_complete
+    // Only wasit needs to complete profile, others are auto-complete
+    const isProfileComplete = role !== "wasit";
+    
+    const profileUpdate: { kabupaten_kota_id?: string; is_profile_complete: boolean } = {
+      is_profile_complete: isProfileComplete,
+    };
+    
     if (kabupaten_kota_id) {
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .update({ kabupaten_kota_id })
-        .eq("id", newUser.user.id);
+      profileUpdate.kabupaten_kota_id = kabupaten_kota_id;
+    }
+    
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update(profileUpdate)
+      .eq("id", newUser.user.id);
 
-      if (profileError) {
-        console.error("Error updating profile:", profileError);
-      }
+    if (profileError) {
+      console.error("Error updating profile:", profileError);
     }
 
     // Assign role
