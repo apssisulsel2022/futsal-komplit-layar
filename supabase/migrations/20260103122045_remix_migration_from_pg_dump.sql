@@ -37,9 +37,26 @@ SET row_security = off;
 --
 
 CREATE TYPE public.app_role AS ENUM (
-    'admin',
-    'referee'
+    'admin_provinsi',
+    'admin_kab_kota',
+    'panitia',
+    'wasit',
+    'evaluator'
 );
+
+
+--
+-- Name: get_user_kabupaten_kota(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_user_kabupaten_kota(_user_id uuid) RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT kabupaten_kota_id
+  FROM public.profiles
+  WHERE id = _user_id
+$$;
 
 
 --
@@ -50,16 +67,11 @@ CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-begin
-  insert into public.profiles (id, full_name)
-  values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email));
-  
-  -- Default role is referee
-  insert into public.user_roles (user_id, role)
-  values (new.id, 'referee');
-  
-  return new;
-end;
+BEGIN
+  INSERT INTO public.profiles (id, full_name)
+  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'full_name', new.email));
+  RETURN new;
+END;
 $$;
 
 
@@ -71,11 +83,45 @@ CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS bo
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-  select exists (
-    select 1
-    from public.user_roles
-    where user_id = _user_id
-      and role = _role
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$$;
+
+
+--
+-- Name: is_admin(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_admin(_user_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role IN ('admin_provinsi'::app_role, 'admin_kab_kota'::app_role)
+  )
+$$;
+
+
+--
+-- Name: is_admin_provinsi(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_admin_provinsi(_user_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = 'admin_provinsi'::app_role
   )
 $$;
 
@@ -152,6 +198,19 @@ CREATE TABLE public.honors (
 
 
 --
+-- Name: kabupaten_kota; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.kabupaten_kota (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    code text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -168,6 +227,7 @@ CREATE TABLE public.profiles (
     is_profile_complete boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    kabupaten_kota_id uuid,
     CONSTRAINT profiles_license_level_check CHECK ((license_level = ANY (ARRAY['level_1'::text, 'level_2'::text, 'level_3'::text])))
 );
 
@@ -240,6 +300,30 @@ ALTER TABLE ONLY public.events
 
 ALTER TABLE ONLY public.honors
     ADD CONSTRAINT honors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: kabupaten_kota kabupaten_kota_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.kabupaten_kota
+    ADD CONSTRAINT kabupaten_kota_code_key UNIQUE (code);
+
+
+--
+-- Name: kabupaten_kota kabupaten_kota_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.kabupaten_kota
+    ADD CONSTRAINT kabupaten_kota_name_key UNIQUE (name);
+
+
+--
+-- Name: kabupaten_kota kabupaten_kota_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.kabupaten_kota
+    ADD CONSTRAINT kabupaten_kota_pkey PRIMARY KEY (id);
 
 
 --
@@ -359,6 +443,14 @@ ALTER TABLE ONLY public.profiles
 
 
 --
+-- Name: profiles profiles_kabupaten_kota_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles
+    ADD CONSTRAINT profiles_kabupaten_kota_id_fkey FOREIGN KEY (kabupaten_kota_id) REFERENCES public.kabupaten_kota(id);
+
+
+--
 -- Name: referee_reviews referee_reviews_referee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -375,80 +467,101 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+-- Name: profiles Admin kab_kota can update profiles in their region; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin kab_kota can update profiles in their region" ON public.profiles FOR UPDATE USING ((public.has_role(auth.uid(), 'admin_kab_kota'::public.app_role) AND (kabupaten_kota_id = public.get_user_kabupaten_kota(auth.uid()))));
+
+
+--
+-- Name: profiles Admin kab_kota can view profiles in their region; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin kab_kota can view profiles in their region" ON public.profiles FOR SELECT USING ((public.has_role(auth.uid(), 'admin_kab_kota'::public.app_role) AND (kabupaten_kota_id = public.get_user_kabupaten_kota(auth.uid()))));
+
+
+--
+-- Name: profiles Admin provinsi can insert profiles; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin provinsi can insert profiles" ON public.profiles FOR INSERT WITH CHECK (public.is_admin_provinsi(auth.uid()));
+
+
+--
+-- Name: kabupaten_kota Admin provinsi can manage kabupaten_kota; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin provinsi can manage kabupaten_kota" ON public.kabupaten_kota USING (public.is_admin_provinsi(auth.uid()));
+
+
+--
+-- Name: user_roles Admin provinsi can manage user_roles; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin provinsi can manage user_roles" ON public.user_roles USING (public.is_admin_provinsi(auth.uid()));
+
+
+--
+-- Name: profiles Admin provinsi can update all profiles; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin provinsi can update all profiles" ON public.profiles FOR UPDATE USING (public.is_admin_provinsi(auth.uid()));
+
+
+--
+-- Name: profiles Admin provinsi can view all profiles; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin provinsi can view all profiles" ON public.profiles FOR SELECT USING (public.is_admin_provinsi(auth.uid()));
+
+
+--
 -- Name: events Admins can create events; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can create events" ON public.events FOR INSERT WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can create events" ON public.events FOR INSERT WITH CHECK (public.is_admin(auth.uid()));
 
 
 --
 -- Name: events Admins can delete events; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can delete events" ON public.events FOR DELETE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can delete events" ON public.events FOR DELETE USING (public.is_admin_provinsi(auth.uid()));
 
 
 --
 -- Name: event_assignments Admins can manage assignments; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can manage assignments" ON public.event_assignments USING (public.has_role(auth.uid(), 'admin'::public.app_role));
-
-
---
--- Name: user_roles Admins can manage roles; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can manage roles" ON public.user_roles USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can manage assignments" ON public.event_assignments USING (public.is_admin(auth.uid()));
 
 
 --
 -- Name: honors Admins can update all honors; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can update all honors" ON public.honors FOR UPDATE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
-
-
---
--- Name: profiles Admins can update all profiles; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can update all profiles" ON public.profiles FOR UPDATE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can update all honors" ON public.honors FOR UPDATE USING (public.is_admin(auth.uid()));
 
 
 --
 -- Name: events Admins can update events; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can update events" ON public.events FOR UPDATE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can update events" ON public.events FOR UPDATE USING (public.is_admin(auth.uid()));
 
 
 --
 -- Name: event_assignments Admins can view all assignments; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can view all assignments" ON public.event_assignments FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can view all assignments" ON public.event_assignments FOR SELECT USING (public.is_admin(auth.uid()));
 
 
 --
 -- Name: honors Admins can view all honors; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Admins can view all honors" ON public.honors FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
-
-
---
--- Name: profiles Admins can view all profiles; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can view all profiles" ON public.profiles FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
-
-
---
--- Name: user_roles Admins can view all roles; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Admins can view all roles" ON public.user_roles FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can view all honors" ON public.honors FOR SELECT USING (public.is_admin(auth.uid()));
 
 
 --
@@ -470,6 +583,13 @@ CREATE POLICY "Anyone can view reviews" ON public.referee_reviews FOR SELECT TO 
 --
 
 CREATE POLICY "Everyone can view events" ON public.events FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: kabupaten_kota Everyone can view kabupaten_kota; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Everyone can view kabupaten_kota" ON public.kabupaten_kota FOR SELECT USING (true);
 
 
 --
@@ -552,6 +672,12 @@ ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.honors ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: kabupaten_kota; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.kabupaten_kota ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
