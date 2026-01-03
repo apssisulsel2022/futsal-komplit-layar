@@ -77,7 +77,7 @@ interface FormData {
 
 export default function ProfileComplete() {
   const navigate = useNavigate();
-  const { user, role, refreshProfile, isAdmin } = useAuth();
+  const { user, role, refreshProfile, isAdmin, isProfileComplete } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   
@@ -99,6 +99,29 @@ export default function ProfileComplete() {
     ktpPhoto: null,
     ktpPhotoFile: null,
   });
+
+  const getRedirectPath = () => {
+    if (isAdmin()) {
+      return "/dashboard";
+    }
+    switch (role) {
+      case "wasit":
+        return "/referee";
+      case "evaluator":
+        return "/evaluations";
+      case "panitia":
+        return "/events";
+      default:
+        return "/";
+    }
+  };
+
+  // Redirect if profile is already complete
+  useEffect(() => {
+    if (!profileLoading && isProfileComplete) {
+      navigate(getRedirectPath(), { replace: true });
+    }
+  }, [isProfileComplete, profileLoading, navigate, role]);
 
   // Initialize form data from profile when loaded
   useEffect(() => {
@@ -165,21 +188,6 @@ export default function ProfileComplete() {
     }
   };
 
-  const getRedirectPath = () => {
-    if (isAdmin()) {
-      return "/dashboard";
-    }
-    switch (role) {
-      case "wasit":
-        return "/referee";
-      case "evaluator":
-        return "/evaluations";
-      case "panitia":
-        return "/events";
-      default:
-        return "/";
-    }
-  };
 
   const handleSubmit = async () => {
     if (!isStep2Valid() || !user) return;

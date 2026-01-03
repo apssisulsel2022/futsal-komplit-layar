@@ -77,8 +77,9 @@ export function ProtectedRoute({
   // Check if profile completion is required but not complete
   // Applies to all roles
   if (requireProfileComplete && !isProfileComplete) {
-    // Allow access to profile completion page
-    if (location.pathname !== "/profile/complete") {
+    // Allow access to profile completion pages
+    const profileCompletePaths = ["/profile/complete", "/referee/profile/complete"];
+    if (!profileCompletePaths.includes(location.pathname)) {
       return <Navigate to="/profile/complete" replace />;
     }
   }
