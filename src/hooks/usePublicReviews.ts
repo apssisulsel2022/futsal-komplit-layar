@@ -24,11 +24,26 @@ export function usePublicReferees(search?: string, afkFilter?: string) {
   return useQuery({
     queryKey: ["public-referees", search, afkFilter],
     queryFn: async (): Promise<RefereeWithStats[]> => {
-      // First get all profiles that have referee role
+      // First get user IDs with 'wasit' role
+      const { data: refereeRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "wasit");
+
+      if (rolesError) throw rolesError;
+
+      const refereeIds = refereeRoles?.map((r) => r.user_id) || [];
+
+      if (refereeIds.length === 0) {
+        return [];
+      }
+
+      // Get profiles for referees only
       let profilesQuery = supabase
         .from("profiles")
         .select("id, full_name, profile_photo_url, license_level, afk_origin")
-        .eq("is_profile_complete", true);
+        .eq("is_profile_complete", true)
+        .in("id", refereeIds);
 
       if (search) {
         profilesQuery = profilesQuery.ilike("full_name", `%${search}%`);
