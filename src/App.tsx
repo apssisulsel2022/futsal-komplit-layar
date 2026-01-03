@@ -10,6 +10,10 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import PublicRefereeList from "./pages/PublicRefereeList";
+import PublicRefereeDetail from "./pages/PublicRefereeDetail";
+import PublicReviewSubmit from "./pages/PublicReviewSubmit";
+import ReviewSuccess from "./pages/ReviewSuccess";
 
 // Admin pages
 import Dashboard from "./pages/Dashboard";
@@ -40,7 +44,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
+            {/* Public review routes - no auth required */}
+            <Route path="/review" element={<PublicRefereeList />} />
+            <Route path="/review/success" element={<ReviewSuccess />} />
+            <Route path="/review/:id" element={<PublicReviewSubmit />} />
+            <Route path="/review/:id/detail" element={<PublicRefereeDetail />} />
+
+            {/* Auth routes */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
