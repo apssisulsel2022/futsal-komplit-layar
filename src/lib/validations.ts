@@ -32,5 +32,20 @@ export const createUserSchema = z.object({
   kabupaten_kota_id: z.string().optional(),
 });
 
+export const signupSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  full_name: z
+    .string()
+    .trim()
+    .min(1, "Nama lengkap tidak boleh kosong")
+    .max(100, "Nama maksimal 100 karakter"),
+  kabupaten_kota_id: z.string().min(1, "Kabupaten/Kota harus dipilih"),
+  requested_role: z.enum(["wasit", "panitia"], {
+    required_error: "Pilih peran yang diinginkan",
+  }),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type CreateUserFormData = z.infer<typeof createUserSchema>;
+export type SignupFormData = z.infer<typeof signupSchema>;

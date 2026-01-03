@@ -59,10 +59,13 @@ import {
   Eye, 
   EyeOff, 
   Trash2, 
-  KeyRound 
+  KeyRound,
+  UserCheck
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 import { createUserSchema, passwordSchema } from "@/lib/validations";
+import { usePendingCount } from "@/hooks/useRegistrations";
 
 const ROLE_LABELS: Record<AppRole, string> = {
   admin_provinsi: "Admin Provinsi",
@@ -84,6 +87,7 @@ export default function UserManagement() {
   const { toast } = useToast();
   const { data: users, isLoading: usersLoading } = useUsers();
   const { data: kabupatenKotaList } = useKabupatenKota();
+  const { data: pendingCount } = usePendingCount();
   const createUser = useCreateUser();
   const updateRole = useUpdateUserRole();
   const updateKabupatenKota = useUpdateUserKabupatenKota();
@@ -292,6 +296,32 @@ export default function UserManagement() {
   return (
     <AppLayout title="Manajemen User">
       <div className="space-y-4 p-4">
+        {/* Pending Approvals Banner */}
+        {pendingCount && pendingCount > 0 && (
+          <Card className="bg-warning/10 border-warning/30">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-warning/20 rounded-lg">
+                  <UserCheck className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <p className="font-medium">
+                    {pendingCount} pendaftaran baru menunggu persetujuan
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Klik untuk meninjau dan menyetujui pendaftaran
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/user-approvals">
+                  Lihat Pendaftaran
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
