@@ -39,6 +39,7 @@ import RefereeDashboard from "./pages/RefereeDashboard";
 import RefereeHonor from "./pages/RefereeHonor";
 import RefereeProfile from "./pages/RefereeProfile";
 import RefereeProfileComplete from "./pages/RefereeProfileComplete";
+import ProfileComplete from "./pages/ProfileComplete";
 
 const queryClient = new QueryClient();
 
@@ -65,11 +66,22 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             
+            {/* Profile Complete - Universal for all roles */}
+            <Route 
+              path="/profile/complete" 
+              element={
+                <ProtectedRoute>
+                  <ProfileComplete />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Legacy route - redirect to new profile complete */}
             <Route 
               path="/referee/profile/complete" 
               element={
                 <ProtectedRoute>
-                  <RefereeProfileComplete />
+                  <ProfileComplete />
                 </ProtectedRoute>
               } 
             />
