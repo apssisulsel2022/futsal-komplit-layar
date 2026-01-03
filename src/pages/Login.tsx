@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
+import { FFSSLogo } from "@/components/reviews/FFSSLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -92,20 +93,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header with gradient */}
       <div className="bg-gradient-to-br from-primary to-accent px-6 pt-12 pb-16 text-center">
-        {/* Logo */}
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-foreground/20 rounded-2xl mb-4 backdrop-blur-sm border border-primary-foreground/10">
-          <div className="text-center">
-            <span className="text-2xl font-black text-primary-foreground tracking-tight">FF</span>
-            <span className="block text-[10px] font-semibold text-primary-foreground/80 -mt-1">SULSEL</span>
-          </div>
-        </div>
-        
-        <h1 className="text-xl font-bold text-primary-foreground mb-1">
-          Federasi Futsal
-        </h1>
-        <p className="text-sm text-primary-foreground/80">
-          Sulawesi Selatan
-        </p>
+        <FFSSLogo size="lg" showSubtitle={true} />
       </div>
 
       {/* Login Form Card */}
