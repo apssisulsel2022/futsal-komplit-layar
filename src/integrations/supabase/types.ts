@@ -167,6 +167,30 @@ export type Database = {
           },
         ]
       }
+      kabupaten_kota: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           afk_origin: string | null
@@ -175,6 +199,7 @@ export type Database = {
           full_name: string
           id: string
           is_profile_complete: boolean | null
+          kabupaten_kota_id: string | null
           ktp_photo_url: string | null
           license_level: string | null
           license_photo_url: string | null
@@ -189,6 +214,7 @@ export type Database = {
           full_name: string
           id: string
           is_profile_complete?: boolean | null
+          kabupaten_kota_id?: string | null
           ktp_photo_url?: string | null
           license_level?: string | null
           license_photo_url?: string | null
@@ -203,6 +229,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_profile_complete?: boolean | null
+          kabupaten_kota_id?: string | null
           ktp_photo_url?: string | null
           license_level?: string | null
           license_photo_url?: string | null
@@ -210,7 +237,15 @@ export type Database = {
           profile_photo_url?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_kabupaten_kota_id_fkey"
+            columns: ["kabupaten_kota_id"]
+            isOneToOne: false
+            referencedRelation: "kabupaten_kota"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referee_reviews: {
         Row: {
@@ -285,6 +320,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_kabupaten_kota: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -292,9 +328,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_provinsi: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "referee"
+      app_role:
+        | "admin_provinsi"
+        | "admin_kab_kota"
+        | "panitia"
+        | "wasit"
+        | "evaluator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -422,7 +465,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "referee"],
+      app_role: [
+        "admin_provinsi",
+        "admin_kab_kota",
+        "panitia",
+        "wasit",
+        "evaluator",
+      ],
     },
   },
 } as const

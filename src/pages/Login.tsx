@@ -11,7 +11,7 @@ import { FFSSLogo } from "@/components/reviews/FFSSLogo";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user, role, isProfileComplete, isLoading: authLoading } = useAuth();
+  const { signIn, user, role, isProfileComplete, isLoading: authLoading, isAdmin } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +21,7 @@ export default function Login() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && role) {
       redirectBasedOnRole();
     }
   }, [user, role, isProfileComplete, authLoading]);
@@ -42,10 +42,16 @@ export default function Login() {
     }
 
     // Redirect based on role
-    if (role === "admin") {
+    if (isAdmin()) {
       navigate("/dashboard", { replace: true });
-    } else {
+    } else if (role === "wasit") {
       navigate("/referee", { replace: true });
+    } else if (role === "evaluator") {
+      navigate("/evaluations", { replace: true });
+    } else if (role === "panitia") {
+      navigate("/events", { replace: true });
+    } else {
+      navigate("/", { replace: true });
     }
   };
 
@@ -190,13 +196,8 @@ export default function Login() {
               )}
             </Button>
 
-            <div className="text-center mt-4">
-              <span className="text-sm text-muted-foreground">
-                Belum punya akun?{" "}
-              </span>
-              <Link to="/signup" className="text-sm font-semibold text-primary hover:underline">
-                Daftar
-              </Link>
+            <div className="text-center mt-4 text-sm text-muted-foreground">
+              Hubungi admin untuk mendapatkan akun
             </div>
           </form>
         </div>

@@ -8,7 +8,6 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Public pages
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import PublicRefereeList from "./pages/PublicRefereeList";
 import PublicRefereeDetail from "./pages/PublicRefereeDetail";
@@ -53,7 +52,6 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
             
             {/* Profile completion - no profile complete requirement */}
             <Route 
@@ -65,11 +63,11 @@ const App = () => (
               } 
             />
 
-            {/* Admin routes */}
+            {/* Admin routes - accessible by admin_provinsi and admin_kab_kota */}
             <Route 
               path="/dashboard" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <Dashboard />
                 </ProtectedRoute>
               } 
@@ -77,7 +75,7 @@ const App = () => (
             <Route 
               path="/events" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <Events />
                 </ProtectedRoute>
               } 
@@ -85,7 +83,7 @@ const App = () => (
             <Route 
               path="/events/:id" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <EventDetail />
                 </ProtectedRoute>
               } 
@@ -93,7 +91,7 @@ const App = () => (
             <Route 
               path="/events/submit" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <EventSubmission />
                 </ProtectedRoute>
               } 
@@ -101,7 +99,7 @@ const App = () => (
             <Route 
               path="/referees" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <Referees />
                 </ProtectedRoute>
               } 
@@ -109,7 +107,7 @@ const App = () => (
             <Route 
               path="/referees/:id" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <RefereeDetail />
                 </ProtectedRoute>
               } 
@@ -117,7 +115,7 @@ const App = () => (
             <Route 
               path="/events/:id/assign-referees" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <RefereeAssignment />
                 </ProtectedRoute>
               } 
@@ -125,7 +123,7 @@ const App = () => (
             <Route 
               path="/admin/honor" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireAdmin requireProfileComplete>
                   <AdminHonorMonitoring />
                 </ProtectedRoute>
               } 
@@ -133,7 +131,7 @@ const App = () => (
             <Route 
               path="/evaluations" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "evaluator"]} requireProfileComplete>
                   <Evaluations />
                 </ProtectedRoute>
               } 
@@ -141,7 +139,7 @@ const App = () => (
             <Route 
               path="/organization" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
                   <Organization />
                 </ProtectedRoute>
               } 
@@ -149,17 +147,17 @@ const App = () => (
             <Route 
               path="/approvals" 
               element={
-                <ProtectedRoute requireRole="admin" requireProfileComplete>
+                <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
                   <Approvals />
                 </ProtectedRoute>
               } 
             />
 
-            {/* Referee routes */}
+            {/* Referee/Wasit routes */}
             <Route 
               path="/referee" 
               element={
-                <ProtectedRoute requireRole="referee" requireProfileComplete>
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
                   <RefereeDashboard />
                 </ProtectedRoute>
               } 
@@ -167,7 +165,7 @@ const App = () => (
             <Route 
               path="/referee/honor" 
               element={
-                <ProtectedRoute requireRole="referee" requireProfileComplete>
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
                   <RefereeHonor />
                 </ProtectedRoute>
               } 
@@ -175,7 +173,7 @@ const App = () => (
             <Route 
               path="/referee/profile" 
               element={
-                <ProtectedRoute requireRole="referee" requireProfileComplete>
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
                   <RefereeProfile />
                 </ProtectedRoute>
               } 
