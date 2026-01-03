@@ -23,8 +23,11 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile, useUpdateProfile, uploadProfileImage } from "@/hooks/useProfile";
+import { toast } from "sonner";
 
-// Mock data for AFK Kab/Kota Sulawesi Selatan
+// AFK options for Sulawesi Selatan
 const afkOptions = [
   { value: "makassar", label: "AFK Kota Makassar" },
   { value: "gowa", label: "AFK Kabupaten Gowa" },
@@ -53,39 +56,62 @@ const afkOptions = [
 ];
 
 const licenseOptions = [
-  { value: "level-3", label: "Level 3", description: "Lisensi Dasar" },
-  { value: "level-2", label: "Level 2", description: "Lisensi Menengah" },
-  { value: "level-1", label: "Level 1", description: "Lisensi Tertinggi" },
+  { value: "level_3", label: "Level 3", description: "Lisensi Dasar" },
+  { value: "level_2", label: "Level 2", description: "Lisensi Menengah" },
+  { value: "level_1", label: "Level 1", description: "Lisensi Tertinggi" },
 ];
 
 interface FormData {
   profilePhoto: string | null;
+  profilePhotoFile: File | null;
   fullName: string;
   birthDate: Date | undefined;
   afk: string;
   occupation: string;
   licenseLevel: string;
   licensePhoto: string | null;
+  licensePhotoFile: File | null;
   ktpPhoto: string | null;
+  ktpPhotoFile: File | null;
 }
 
 export default function RefereeProfileComplete() {
   const navigate = useNavigate();
+  const { user, refreshProfile } = useAuth();
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
+  
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    profilePhoto: null,
-    fullName: "",
-    birthDate: undefined,
-    afk: "",
-    occupation: "",
-    licenseLevel: "",
-    licensePhoto: null,
-    ktpPhoto: null,
+    profilePhoto: profile?.profile_photo_url || null,
+    profilePhotoFile: null,
+    fullName: profile?.full_name || "",
+    birthDate: profile?.birth_date ? new Date(profile.birth_date) : undefined,
+    afk: profile?.afk_origin || "",
+    occupation: profile?.occupation || "",
+    licenseLevel: profile?.license_level || "",
+    licensePhoto: profile?.license_photo_url || null,
+    licensePhotoFile: null,
+    ktpPhoto: profile?.ktp_photo_url || null,
+    ktpPhotoFile: null,
   });
 
   const updateFormData = (field: keyof FormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (
+    field: "profilePhoto" | "licensePhoto" | "ktpPhoto",
+    fileField: "profilePhotoFile" | "licensePhotoFile" | "ktpPhotoFile",
+    value: string | undefined,
+    file?: File
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value || null,
+      [fileField]: file || null,
+    }));
   };
 
   const isStep1Valid =
@@ -95,8 +121,8 @@ export default function RefereeProfileComplete() {
 
   const isStep2Valid =
     formData.licenseLevel !== "" &&
-    formData.licensePhoto !== null &&
-    formData.ktpPhoto !== null;
+    (formData.licensePhoto !== null || formData.licensePhotoFile !== null) &&
+    (formData.ktpPhoto !== null || formData.ktpPhotoFile !== null);
 
   const handleNext = () => {
     if (step === 1 && isStep1Valid) {
@@ -111,14 +137,66 @@ export default function RefereeProfileComplete() {
   };
 
   const handleSubmit = async () => {
-    if (!isStep2Valid) return;
+    if (!isStep2Valid || !user) return;
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    try {
+      let profilePhotoUrl = formData.profilePhoto;
+      let licensePhotoUrl = formData.licensePhoto;
+      let ktpPhotoUrl = formData.ktpPhoto;
+
+      // Upload profile photo if new file selected
+      if (formData.profilePhotoFile) {
+        profilePhotoUrl = await uploadProfileImage(
+          user.id,
+          formData.profilePhotoFile,
+          "avatars",
+          "profile"
+        );
+      }
+
+      // Upload license photo if new file selected
+      if (formData.licensePhotoFile) {
+        licensePhotoUrl = await uploadProfileImage(
+          user.id,
+          formData.licensePhotoFile,
+          "documents",
+          "license"
+        );
+      }
+
+      // Upload KTP photo if new file selected
+      if (formData.ktpPhotoFile) {
+        ktpPhotoUrl = await uploadProfileImage(
+          user.id,
+          formData.ktpPhotoFile,
+          "documents",
+          "ktp"
+        );
+      }
+
+      // Update profile
+      await updateProfile.mutateAsync({
+        full_name: formData.fullName,
+        birth_date: formData.birthDate ? format(formData.birthDate, "yyyy-MM-dd") : null,
+        afk_origin: formData.afk,
+        occupation: formData.occupation || null,
+        license_level: formData.licenseLevel,
+        profile_photo_url: profilePhotoUrl,
+        license_photo_url: licensePhotoUrl,
+        ktp_photo_url: ktpPhotoUrl,
+        is_profile_complete: true,
+      });
+
+      await refreshProfile();
+      toast.success("Profil berhasil disimpan!");
       navigate("/referee");
-    }, 1500);
+    } catch (error: any) {
+      toast.error("Gagal menyimpan profil: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -182,7 +260,7 @@ export default function RefereeProfileComplete() {
                 <ImageUpload
                   variant="avatar"
                   value={formData.profilePhoto || undefined}
-                  onChange={(val) => updateFormData("profilePhoto", val)}
+                  onChange={(val, file) => handleImageChange("profilePhoto", "profilePhotoFile", val, file)}
                   label="Foto Profil"
                 />
               </div>
@@ -338,14 +416,14 @@ export default function RefereeProfileComplete() {
               <ImageUpload
                 label="Foto Lisensi *"
                 value={formData.licensePhoto || undefined}
-                onChange={(val) => updateFormData("licensePhoto", val)}
+                onChange={(val, file) => handleImageChange("licensePhoto", "licensePhotoFile", val, file)}
               />
 
               {/* KTP Photo */}
               <ImageUpload
                 label="Foto KTP *"
                 value={formData.ktpPhoto || undefined}
-                onChange={(val) => updateFormData("ktpPhoto", val)}
+                onChange={(val, file) => handleImageChange("ktpPhoto", "ktpPhotoFile", val, file)}
               />
 
               {/* Action Buttons */}

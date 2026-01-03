@@ -1,18 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn, user, role, isProfileComplete, isLoading: authLoading } = useAuth();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      redirectBasedOnRole();
+    }
+  }, [user, role, isProfileComplete, authLoading]);
+
+  const redirectBasedOnRole = () => {
+    // Check if there's a redirect path from protected route
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    
+    if (from) {
+      navigate(from, { replace: true });
+      return;
+    }
+
+    // If profile not complete, go to profile completion
+    if (!isProfileComplete) {
+      navigate("/referee/profile/complete", { replace: true });
+      return;
+    }
+
+    // Redirect based on role
+    if (role === "admin") {
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/referee", { replace: true });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,16 +62,31 @@ export default function Login() {
       return;
     }
 
-    // Simulate login (UI mockup only)
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to dashboard on "successful" login
-      navigate("/");
-    }, 1500);
+    const { error } = await signIn(email, password);
+    
+    setIsLoading(false);
+    
+    if (error) {
+      if (error.message.includes("Invalid login credentials")) {
+        setError("Email atau password salah");
+      } else if (error.message.includes("Email not confirmed")) {
+        setError("Email belum diverifikasi. Silakan cek email Anda");
+      } else {
+        setError(error.message);
+      }
+    }
   };
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

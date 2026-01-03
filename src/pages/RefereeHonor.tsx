@@ -3,27 +3,25 @@ import {
   Wallet, 
   Calendar, 
   MapPin, 
-  Trophy, 
   AlertCircle, 
   Send, 
   Clock, 
   CheckCircle2, 
   FileCheck,
-  ChevronRight,
   Plus,
   X,
-  Home,
+  LayoutDashboard,
   CalendarDays,
-  User
+  User,
+  Loader2
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -40,64 +38,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-
-interface HonorEntry {
-  id: number;
-  eventName: string;
-  eventDate: string;
-  amount: number;
-  notes: string;
-  status: "draft" | "submitted" | "verified";
-  submittedAt?: string;
-  verifiedAt?: string;
-}
-
-const mockEvents = [
-  { id: 1, name: "Liga Futsal Gowa 2024", date: "15 Feb 2024", location: "GOR Gowa" },
-  { id: 2, name: "Turnamen Pelajar Maros", date: "20 Feb 2024", location: "GOR Maros" },
-  { id: 3, name: "Piala Wali Kota Makassar", date: "10 Mar 2024", location: "GOR Sudiang" },
-];
-
-const initialHistory: HonorEntry[] = [
-  {
-    id: 1,
-    eventName: "Liga Futsal Makassar 2024",
-    eventDate: "28 Jan 2024",
-    amount: 750000,
-    notes: "4 pertandingan sebagai wasit utama",
-    status: "verified",
-    submittedAt: "29 Jan 2024",
-    verifiedAt: "2 Feb 2024",
-  },
-  {
-    id: 2,
-    eventName: "Turnamen Antar Kabupaten",
-    eventDate: "5 Feb 2024",
-    amount: 500000,
-    notes: "3 pertandingan sebagai wasit kedua",
-    status: "verified",
-    submittedAt: "6 Feb 2024",
-    verifiedAt: "10 Feb 2024",
-  },
-  {
-    id: 3,
-    eventName: "Piala Gubernur Sul-Sel",
-    eventDate: "18 Feb 2024",
-    amount: 600000,
-    notes: "3 pertandingan (final + semifinal)",
-    status: "submitted",
-    submittedAt: "19 Feb 2024",
-  },
-  {
-    id: 4,
-    eventName: "Liga Futsal Gowa 2024",
-    eventDate: "22 Feb 2024",
-    amount: 400000,
-    notes: "2 pertandingan penyisihan grup",
-    status: "draft",
-  },
-];
+import { useHonors, useCreateHonor, useUpdateHonor, useHonorStats, Honor } from "@/hooks/useHonors";
+import { useEvents } from "@/hooks/useEvents";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -108,12 +52,12 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const getStatusConfig = (status: HonorEntry["status"]) => {
+const getStatusConfig = (status: Honor["status"]) => {
   switch (status) {
     case "draft":
       return { 
         label: "Draft", 
-        variant: "default" as const,
+        variant: "neutral" as const,
         icon: Clock,
         color: "text-muted-foreground"
       };
@@ -131,14 +75,27 @@ const getStatusConfig = (status: HonorEntry["status"]) => {
         icon: CheckCircle2,
         color: "text-success"
       };
+    case "rejected":
+      return { 
+        label: "Ditolak", 
+        variant: "error" as const,
+        icon: X,
+        color: "text-destructive"
+      };
+    default:
+      return { 
+        label: status, 
+        variant: "neutral" as const,
+        icon: Clock,
+        color: "text-muted-foreground"
+      };
   }
 };
 
 export default function RefereeHonor() {
-  const { toast } = useToast();
+  const location = useLocation();
   const [showInputForm, setShowInputForm] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [history, setHistory] = useState<HonorEntry[]>(initialHistory);
   
   // Form state
   const [selectedEvent, setSelectedEvent] = useState("");
@@ -146,13 +103,19 @@ export default function RefereeHonor() {
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const totalVerified = history
-    .filter(h => h.status === "verified")
-    .reduce((sum, h) => sum + h.amount, 0);
-  
-  const totalPending = history
-    .filter(h => h.status === "submitted")
-    .reduce((sum, h) => sum + h.amount, 0);
+  // Hooks
+  const { data: honors, isLoading: honorsLoading } = useHonors();
+  const { data: events } = useEvents();
+  const { data: honorStats } = useHonorStats();
+  const createHonor = useCreateHonor();
+  const updateHonor = useUpdateHonor();
+
+  const navItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/referee" },
+    { icon: CalendarDays, label: "Event", path: "/referee/events" },
+    { icon: Wallet, label: "Honor", path: "/referee/honor" },
+    { icon: User, label: "Profil", path: "/referee/profile" },
+  ];
 
   const validateForm = (): boolean => {
     if (!selectedEvent) {
@@ -175,27 +138,17 @@ export default function RefereeHonor() {
     return true;
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!validateForm()) return;
 
-    const event = mockEvents.find(e => e.id.toString() === selectedEvent);
-    if (!event) return;
-
-    const newEntry: HonorEntry = {
-      id: Date.now(),
-      eventName: event.name,
-      eventDate: event.date,
+    await createHonor.mutateAsync({
+      event_id: selectedEvent,
       amount: parseInt(honorAmount.replace(/\D/g, "")),
-      notes: notes.trim(),
+      notes: notes.trim() || undefined,
       status: "draft",
-    };
-
-    setHistory([newEntry, ...history]);
-    resetForm();
-    toast({
-      title: "Draft Tersimpan",
-      description: "Honor berhasil disimpan sebagai draft.",
     });
+
+    resetForm();
   };
 
   const handleSubmit = () => {
@@ -203,31 +156,16 @@ export default function RefereeHonor() {
     setShowSubmitDialog(true);
   };
 
-  const confirmSubmit = () => {
-    const event = mockEvents.find(e => e.id.toString() === selectedEvent);
-    if (!event) return;
-
-    const newEntry: HonorEntry = {
-      id: Date.now(),
-      eventName: event.name,
-      eventDate: event.date,
+  const confirmSubmit = async () => {
+    await createHonor.mutateAsync({
+      event_id: selectedEvent,
       amount: parseInt(honorAmount.replace(/\D/g, "")),
-      notes: notes.trim(),
+      notes: notes.trim() || undefined,
       status: "submitted",
-      submittedAt: new Date().toLocaleDateString("id-ID", { 
-        day: "numeric", 
-        month: "short", 
-        year: "numeric" 
-      }),
-    };
+    });
 
-    setHistory([newEntry, ...history]);
     resetForm();
     setShowSubmitDialog(false);
-    toast({
-      title: "Honor Diajukan",
-      description: "Honor telah diajukan untuk verifikasi admin.",
-    });
   };
 
   const resetForm = () => {
@@ -239,10 +177,8 @@ export default function RefereeHonor() {
   };
 
   const handleAmountChange = (value: string) => {
-    // Only allow numbers
     const numericValue = value.replace(/\D/g, "");
     if (numericValue) {
-      // Format with thousand separators
       const formatted = new Intl.NumberFormat("id-ID").format(parseInt(numericValue));
       setHonorAmount(formatted);
     } else {
@@ -250,25 +186,20 @@ export default function RefereeHonor() {
     }
   };
 
-  const submitDraft = (entry: HonorEntry) => {
-    setHistory(history.map(h => 
-      h.id === entry.id 
-        ? { 
-            ...h, 
-            status: "submitted" as const,
-            submittedAt: new Date().toLocaleDateString("id-ID", { 
-              day: "numeric", 
-              month: "short", 
-              year: "numeric" 
-            })
-          }
-        : h
-    ));
-    toast({
-      title: "Honor Diajukan",
-      description: `Honor untuk "${entry.eventName}" telah diajukan.`,
+  const submitDraft = async (entry: Honor) => {
+    await updateHonor.mutateAsync({
+      id: entry.id,
+      status: "submitted",
     });
   };
+
+  if (honorsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -287,7 +218,9 @@ export default function RefereeHonor() {
                 <CheckCircle2 className="h-4 w-4 text-success" />
                 <span className="text-xs text-muted-foreground">Terverifikasi</span>
               </div>
-              <p className="text-lg font-bold text-success">{formatCurrency(totalVerified)}</p>
+              <p className="text-lg font-bold text-success">
+                {formatCurrency(honorStats?.verified || 0)}
+              </p>
             </CardContent>
           </Card>
           <Card className="bg-warning/10 border-warning/20">
@@ -296,7 +229,9 @@ export default function RefereeHonor() {
                 <Clock className="h-4 w-4 text-warning" />
                 <span className="text-xs text-muted-foreground">Menunggu</span>
               </div>
-              <p className="text-lg font-bold text-warning">{formatCurrency(totalPending)}</p>
+              <p className="text-lg font-bold text-warning">
+                {formatCurrency(honorStats?.pending || 0)}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -345,12 +280,12 @@ export default function RefereeHonor() {
                     <SelectValue placeholder="Pilih event..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id.toString()}>
+                    {events?.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
                         <div className="flex flex-col">
                           <span>{event.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {event.date} • {event.location}
+                            {format(new Date(event.date), "dd MMM yyyy", { locale: id })} • {event.location || "Lokasi belum ditentukan"}
                           </span>
                         </div>
                       </SelectItem>
@@ -364,18 +299,18 @@ export default function RefereeHonor() {
                 <Card className="bg-muted/50">
                   <CardContent className="p-3">
                     {(() => {
-                      const event = mockEvents.find(e => e.id.toString() === selectedEvent);
+                      const event = events?.find(e => e.id === selectedEvent);
                       return event ? (
                         <div className="space-y-1.5">
                           <p className="font-medium text-sm">{event.name}</p>
                           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {event.date}
+                              {format(new Date(event.date), "dd MMM yyyy", { locale: id })}
                             </span>
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
-                              {event.location}
+                              {event.location || "Lokasi belum ditentukan"}
                             </span>
                           </div>
                         </div>
@@ -435,12 +370,18 @@ export default function RefereeHonor() {
                   variant="outline" 
                   className="flex-1"
                   onClick={handleSaveDraft}
+                  disabled={createHonor.isPending}
                 >
-                  Simpan Draft
+                  {createHonor.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Simpan Draft"
+                  )}
                 </Button>
                 <Button 
                   className="flex-1"
                   onClick={handleSubmit}
+                  disabled={createHonor.isPending}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Ajukan
@@ -457,7 +398,7 @@ export default function RefereeHonor() {
             Riwayat Honor
           </h2>
 
-          {history.length === 0 ? (
+          {(!honors || honors.length === 0) ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
@@ -467,7 +408,7 @@ export default function RefereeHonor() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {history.map((entry) => {
+              {honors.map((entry) => {
                 const statusConfig = getStatusConfig(entry.status);
                 const StatusIcon = statusConfig.icon;
 
@@ -476,19 +417,31 @@ export default function RefereeHonor() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm truncate">{entry.eventName}</h3>
+                          <h3 className="font-medium text-sm truncate">
+                            {entry.events?.name || "Event tidak ditemukan"}
+                          </h3>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <Calendar className="h-3 w-3" />
-                            {entry.eventDate}
+                            {entry.events?.date 
+                              ? format(new Date(entry.events.date), "dd MMM yyyy", { locale: id })
+                              : "-"
+                            }
                           </p>
                         </div>
                         <StatusBadge status={
                           entry.status === "verified" ? "success" : 
-                          entry.status === "submitted" ? "warning" : "neutral"
+                          entry.status === "submitted" ? "warning" : 
+                          entry.status === "rejected" ? "error" : "neutral"
                         }>
                           {statusConfig.label}
                         </StatusBadge>
                       </div>
+
+                      {entry.notes && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {entry.notes}
+                        </p>
+                      )}
 
                       <div className="flex items-center justify-between mt-3">
                         <p className={`text-lg font-bold ${statusConfig.color}`}>
@@ -498,35 +451,13 @@ export default function RefereeHonor() {
                           <Button 
                             size="sm" 
                             onClick={() => submitDraft(entry)}
+                            disabled={updateHonor.isPending}
                           >
                             <Send className="h-3 w-3 mr-1" />
                             Ajukan
                           </Button>
                         )}
                       </div>
-
-                      {entry.notes && (
-                        <p className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded">
-                          {entry.notes}
-                        </p>
-                      )}
-
-                      {(entry.submittedAt || entry.verifiedAt) && (
-                        <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                          {entry.submittedAt && (
-                            <span className="flex items-center gap-1">
-                              <Send className="h-3 w-3" />
-                              Diajukan: {entry.submittedAt}
-                            </span>
-                          )}
-                          {entry.verifiedAt && (
-                            <span className="flex items-center gap-1 text-success">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Terverifikasi: {entry.verifiedAt}
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 );
@@ -536,75 +467,52 @@ export default function RefereeHonor() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 z-50">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          <Link to="/referee" className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors">
-            <Home className="h-5 w-5" />
-            <span className="text-[10px]">Dashboard</span>
-          </Link>
-          <Link to="/referee/events" className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors">
-            <CalendarDays className="h-5 w-5" />
-            <span className="text-[10px]">Event</span>
-          </Link>
-          <Link to="/referee/honor" className="flex flex-col items-center gap-1 py-2 px-4 text-primary">
-            <Wallet className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Honor</span>
-          </Link>
-          <Link to="/referee/profile" className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors">
-            <User className="h-5 w-5" />
-            <span className="text-[10px]">Profil</span>
-          </Link>
-        </div>
-      </nav>
-
       {/* Submit Confirmation Dialog */}
       <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-primary" />
-              Ajukan Honor
-            </DialogTitle>
+            <DialogTitle>Konfirmasi Pengajuan</DialogTitle>
             <DialogDescription>
-              Anda akan mengajukan honor untuk diverifikasi oleh Admin. 
-              Pastikan data yang dimasukkan sudah benar.
+              Setelah diajukan, honor akan menunggu verifikasi dari admin. 
+              Anda tidak dapat mengubah data setelah diajukan.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Event</span>
-              <span className="font-medium">
-                {mockEvents.find(e => e.id.toString() === selectedEvent)?.name}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Jumlah</span>
-              <span className="font-bold text-primary">
-                Rp {honorAmount}
-              </span>
-            </div>
-          </div>
-
-          <Alert className="bg-warning/10 border-warning/30">
-            <AlertCircle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-sm text-warning">
-              Honor akan diverifikasi oleh Admin sebelum diproses.
-            </AlertDescription>
-          </Alert>
-
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
               Batal
             </Button>
-            <Button onClick={confirmSubmit}>
-              <Send className="h-4 w-4 mr-1" />
-              Ajukan
+            <Button onClick={confirmSubmit} disabled={createHonor.isPending}>
+              {createHonor.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Ya, Ajukan
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+        <div className="grid grid-cols-4 h-16">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <item.icon className={`h-5 w-5 ${isActive ? "stroke-[2.5]" : ""}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

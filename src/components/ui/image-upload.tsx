@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
   value?: string;
-  onChange: (value: string | null) => void;
+  onChange: (value: string | undefined, file?: File) => void;
   className?: string;
   variant?: "avatar" | "document";
   label?: string;
@@ -47,7 +47,7 @@ export function ImageUpload({
       // Create preview URL
       const reader = new FileReader();
       reader.onload = (e) => {
-        onChange(e.target?.result as string);
+        onChange(e.target?.result as string, file);
       };
       reader.readAsDataURL(file);
     },
@@ -79,7 +79,7 @@ export function ImageUpload({
   };
 
   const handleRemove = () => {
-    onChange(null);
+    onChange(undefined);
     if (inputRef.current) {
       inputRef.current.value = "";
     }

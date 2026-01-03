@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   User,
   Calendar,
@@ -10,9 +10,9 @@ import {
   Edit3,
   LogOut,
   ChevronRight,
-  Home,
+  LayoutDashboard,
   CalendarDays,
-  DollarSign,
+  Wallet,
   Camera,
   Check,
   X,
@@ -40,6 +40,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -47,8 +48,11 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile, useUpdateProfile, uploadProfileImage } from "@/hooks/useProfile";
+import { toast } from "sonner";
 
-// Mock data for AFK options
+// AFK options
 const afkOptions = [
   { value: "makassar", label: "AFK Kota Makassar" },
   { value: "gowa", label: "AFK Kabupaten Gowa" },
@@ -61,58 +65,89 @@ const afkOptions = [
 ];
 
 const licenseOptions = [
-  { value: "level-3", label: "Level 3", description: "Lisensi Dasar" },
-  { value: "level-2", label: "Level 2", description: "Lisensi Menengah" },
-  { value: "level-1", label: "Level 1", description: "Lisensi Tertinggi" },
+  { value: "level_3", label: "Level 3", description: "Lisensi Dasar" },
+  { value: "level_2", label: "Level 2", description: "Lisensi Menengah" },
+  { value: "level_1", label: "Level 1", description: "Lisensi Tertinggi" },
 ];
-
-// Mock profile data
-const mockProfile = {
-  profilePhoto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-  fullName: "Ahmad Fauzi Rahman",
-  email: "ahmad.fauzi@email.com",
-  birthDate: new Date(1990, 5, 15),
-  afk: "makassar",
-  occupation: "Guru Olahraga",
-  licenseLevel: "level-2",
-  licensePhoto: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&h=200&fit=crop",
-  ktpPhoto: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&h=200&fit=crop",
-  verificationStatus: "verified" as const,
-};
 
 interface ProfileData {
   profilePhoto: string | null;
+  profilePhotoFile: File | null;
   fullName: string;
   birthDate: Date | undefined;
   afk: string;
   occupation: string;
   licenseLevel: string;
   licensePhoto: string | null;
+  licensePhotoFile: File | null;
   ktpPhoto: string | null;
+  ktpPhotoFile: File | null;
 }
 
 export default function RefereeProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, signOut } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState<"license" | "ktp" | null>(null);
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    profilePhoto: mockProfile.profilePhoto,
-    fullName: mockProfile.fullName,
-    birthDate: mockProfile.birthDate,
-    afk: mockProfile.afk,
-    occupation: mockProfile.occupation,
-    licenseLevel: mockProfile.licenseLevel,
-    licensePhoto: mockProfile.licensePhoto,
-    ktpPhoto: mockProfile.ktpPhoto,
+    profilePhoto: null,
+    profilePhotoFile: null,
+    fullName: "",
+    birthDate: undefined,
+    afk: "",
+    occupation: "",
+    licenseLevel: "",
+    licensePhoto: null,
+    licensePhotoFile: null,
+    ktpPhoto: null,
+    ktpPhotoFile: null,
   });
 
   const [editData, setEditData] = useState<ProfileData>(profileData);
 
+  // Sync profile data from database
+  useEffect(() => {
+    if (profile) {
+      const data: ProfileData = {
+        profilePhoto: profile.profile_photo_url,
+        profilePhotoFile: null,
+        fullName: profile.full_name || "",
+        birthDate: profile.birth_date ? new Date(profile.birth_date) : undefined,
+        afk: profile.afk_origin || "",
+        occupation: profile.occupation || "",
+        licenseLevel: profile.license_level || "",
+        licensePhoto: profile.license_photo_url,
+        licensePhotoFile: null,
+        ktpPhoto: profile.ktp_photo_url,
+        ktpPhotoFile: null,
+      };
+      setProfileData(data);
+      setEditData(data);
+    }
+  }, [profile]);
+
   const updateEditData = (field: keyof ProfileData, value: any) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (
+    field: "profilePhoto" | "licensePhoto" | "ktpPhoto",
+    fileField: "profilePhotoFile" | "licensePhotoFile" | "ktpPhotoFile",
+    value: string | undefined,
+    file?: File
+  ) => {
+    setEditData((prev) => ({
+      ...prev,
+      [field]: value || null,
+      [fileField]: file || null,
+    }));
   };
 
   const getAfkLabel = (value: string) => {
@@ -134,18 +169,81 @@ export default function RefereeProfile() {
   };
 
   const handleSaveEdit = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setProfileData(editData);
+    
+    try {
+      let profilePhotoUrl = editData.profilePhoto;
+      let licensePhotoUrl = editData.licensePhoto;
+      let ktpPhotoUrl = editData.ktpPhoto;
+
+      // Upload new photos if files selected
+      if (editData.profilePhotoFile) {
+        profilePhotoUrl = await uploadProfileImage(
+          user.id,
+          editData.profilePhotoFile,
+          "avatars",
+          "profile"
+        );
+      }
+
+      if (editData.licensePhotoFile) {
+        licensePhotoUrl = await uploadProfileImage(
+          user.id,
+          editData.licensePhotoFile,
+          "documents",
+          "license"
+        );
+      }
+
+      if (editData.ktpPhotoFile) {
+        ktpPhotoUrl = await uploadProfileImage(
+          user.id,
+          editData.ktpPhotoFile,
+          "documents",
+          "ktp"
+        );
+      }
+
+      await updateProfile.mutateAsync({
+        full_name: editData.fullName,
+        birth_date: editData.birthDate ? format(editData.birthDate, "yyyy-MM-dd") : null,
+        afk_origin: editData.afk || null,
+        occupation: editData.occupation || null,
+        license_level: editData.licenseLevel || null,
+        profile_photo_url: profilePhotoUrl,
+        license_photo_url: licensePhotoUrl,
+        ktp_photo_url: ktpPhotoUrl,
+      });
+
       setIsEditing(false);
+    } catch (error: any) {
+      toast.error("Gagal menyimpan profil: " + error.message);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     navigate("/login");
   };
+
+  const navItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/referee" },
+    { icon: CalendarDays, label: "Event", path: "/referee/events" },
+    { icon: Wallet, label: "Honor", path: "/referee/honor" },
+    { icon: User, label: "Profil", path: "/referee/profile" },
+  ];
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -198,7 +296,7 @@ export default function RefereeProfile() {
             <ImageUpload
               variant="avatar"
               value={editData.profilePhoto || undefined}
-              onChange={(val) => updateEditData("profilePhoto", val)}
+              onChange={(val, file) => handleImageChange("profilePhoto", "profilePhotoFile", val, file)}
             />
           ) : (
             <div className="relative">
@@ -224,17 +322,19 @@ export default function RefereeProfile() {
           {!isEditing && (
             <>
               <h2 className="text-xl font-bold text-primary-foreground mt-3">
-                {profileData.fullName}
+                {profileData.fullName || "Nama belum diisi"}
               </h2>
               <div className="flex items-center gap-2 mt-2">
                 <StatusBadge
-                  status={mockProfile.verificationStatus === "verified" ? "success" : "warning"}
+                  status={profile?.is_profile_complete ? "success" : "warning"}
                 >
-                  {mockProfile.verificationStatus === "verified" ? "Terverifikasi" : "Pending"}
+                  {profile?.is_profile_complete ? "Terverifikasi" : "Pending"}
                 </StatusBadge>
-                <span className="text-sm text-primary-foreground/80">
-                  {getLicenseLabel(profileData.licenseLevel)}
-                </span>
+                {profileData.licenseLevel && (
+                  <span className="text-sm text-primary-foreground/80">
+                    {getLicenseLabel(profileData.licenseLevel)}
+                  </span>
+                )}
               </div>
             </>
           )}
@@ -344,14 +444,14 @@ export default function RefereeProfile() {
               <ImageUpload
                 label="Foto Lisensi"
                 value={editData.licensePhoto || undefined}
-                onChange={(val) => updateEditData("licensePhoto", val)}
+                onChange={(val, file) => handleImageChange("licensePhoto", "licensePhotoFile", val, file)}
               />
 
               {/* KTP Photo */}
               <ImageUpload
                 label="Foto KTP"
                 value={editData.ktpPhoto || undefined}
-                onChange={(val) => updateEditData("ktpPhoto", val)}
+                onChange={(val, file) => handleImageChange("ktpPhoto", "ktpPhotoFile", val, file)}
               />
             </div>
           ) : (
@@ -378,7 +478,7 @@ export default function RefereeProfile() {
                   </div>
                   <div className="flex-1">
                     <p className="text-xs text-muted-foreground">Asal AFK</p>
-                    <p className="text-sm font-medium">{getAfkLabel(profileData.afk)}</p>
+                    <p className="text-sm font-medium">{getAfkLabel(profileData.afk) || "-"}</p>
                   </div>
                 </div>
 
@@ -399,7 +499,7 @@ export default function RefereeProfile() {
                   <div className="flex-1">
                     <p className="text-xs text-muted-foreground">Level Lisensi</p>
                     <p className="text-sm font-medium">
-                      {getLicenseLabel(profileData.licenseLevel)}
+                      {getLicenseLabel(profileData.licenseLevel) || "-"}
                     </p>
                   </div>
                 </div>
@@ -412,6 +512,7 @@ export default function RefereeProfile() {
                   <button
                     className="w-full flex items-center gap-3 p-3 bg-background rounded-lg border border-border"
                     onClick={() => setShowDocumentDialog("license")}
+                    disabled={!profileData.licensePhoto}
                   >
                     <FileText className="w-5 h-5 text-primary" />
                     <span className="flex-1 text-left text-sm">Foto Lisensi</span>
@@ -420,6 +521,7 @@ export default function RefereeProfile() {
                   <button
                     className="w-full flex items-center gap-3 p-3 bg-background rounded-lg border border-border"
                     onClick={() => setShowDocumentDialog("ktp")}
+                    disabled={!profileData.ktpPhoto}
                   >
                     <FileText className="w-5 h-5 text-primary" />
                     <span className="flex-1 text-left text-sm">Foto KTP</span>
@@ -473,60 +575,52 @@ export default function RefereeProfile() {
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>Keluar dari Akun?</DialogTitle>
+            <DialogTitle>Konfirmasi Keluar</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Anda akan keluar dari aplikasi dan perlu login kembali.
+            Apakah Anda yakin ingin keluar dari akun ini?
           </p>
-          <div className="flex gap-3 mt-4">
+          <DialogFooter className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1"
               onClick={() => setShowLogoutDialog(false)}
+              className="flex-1"
             >
               Batal
             </Button>
             <Button
               variant="destructive"
-              className="flex-1"
               onClick={handleLogout}
+              className="flex-1"
             >
               Keluar
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 z-50">
-        <div className="flex justify-around items-center max-w-md mx-auto">
-          <button
-            onClick={() => navigate("/referee")}
-            className="flex flex-col items-center gap-1 py-2 px-3 text-muted-foreground"
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-xs">Beranda</span>
-          </button>
-          <button
-            onClick={() => navigate("/referee")}
-            className="flex flex-col items-center gap-1 py-2 px-3 text-muted-foreground"
-          >
-            <CalendarDays className="w-5 h-5" />
-            <span className="text-xs">Event</span>
-          </button>
-          <button
-            onClick={() => navigate("/referee/honor")}
-            className="flex flex-col items-center gap-1 py-2 px-3 text-muted-foreground"
-          >
-            <DollarSign className="w-5 h-5" />
-            <span className="text-xs">Honor</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 py-2 px-3 text-primary">
-            <User className="w-5 h-5" />
-            <span className="text-xs font-medium">Profil</span>
-          </button>
+      <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+        <div className="grid grid-cols-4 h-16">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <item.icon className={`h-5 w-5 ${isActive ? "stroke-[2.5]" : ""}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
-      </div>
+      </nav>
     </div>
   );
 }
