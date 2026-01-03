@@ -79,18 +79,18 @@ export function getActionLabel(action: AuditAction): string {
 }
 
 // Helper to get action badge variant
-export function getActionVariant(action: AuditAction): 'default' | 'secondary' | 'destructive' | 'outline' {
+export function getActionVariant(action: AuditAction): 'success' | 'warning' | 'error' | 'info' {
   switch (action) {
     case 'EVENT_APPROVAL':
     case 'HONOR_VERIFIED':
-      return 'default';
+      return 'success';
     case 'REFEREE_ASSIGNED':
     case 'HONOR_SUBMITTED':
-      return 'secondary';
+      return 'info';
     case 'REFEREE_UNASSIGNED':
     case 'HONOR_REJECTED':
-      return 'destructive';
+      return 'error';
     default:
-      return 'outline';
+      return 'warning';
   }
 }
