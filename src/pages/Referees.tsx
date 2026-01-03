@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Plus, Search, Filter, Star, ChevronRight, X, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus, Search, Filter, Star, ChevronRight, X, MapPin, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
@@ -25,118 +25,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const referees = [
-  {
-    id: 1,
-    name: "Ahmad Rizky",
-    license: "Lisensi A",
-    kabKota: "Makassar",
-    phone: "0812-3456-7890",
-    email: "ahmad.rizky@email.com",
-    rating: 4.8,
-    totalMatches: 124,
-    status: "active",
-    totalEarnings: 15600000,
-  },
-  {
-    id: 2,
-    name: "Budi Santoso",
-    license: "Lisensi A",
-    kabKota: "Gowa",
-    phone: "0813-4567-8901",
-    email: "budi.santoso@email.com",
-    rating: 4.6,
-    totalMatches: 98,
-    status: "active",
-    totalEarnings: 12400000,
-  },
-  {
-    id: 3,
-    name: "Cahya Putra",
-    license: "Lisensi B",
-    kabKota: "Maros",
-    phone: "0814-5678-9012",
-    email: "cahya.putra@email.com",
-    rating: 4.5,
-    totalMatches: 76,
-    status: "active",
-    totalEarnings: 9500000,
-  },
-  {
-    id: 4,
-    name: "Dedi Wijaya",
-    license: "Lisensi B",
-    kabKota: "Makassar",
-    phone: "0815-6789-0123",
-    email: "dedi.wijaya@email.com",
-    rating: 4.3,
-    totalMatches: 52,
-    status: "inactive",
-    totalEarnings: 6800000,
-  },
-  {
-    id: 5,
-    name: "Eko Prasetyo",
-    license: "Lisensi C",
-    kabKota: "Takalar",
-    phone: "0816-7890-1234",
-    email: "eko.prasetyo@email.com",
-    rating: 4.1,
-    totalMatches: 28,
-    status: "active",
-    totalEarnings: 3500000,
-  },
-  {
-    id: 6,
-    name: "Fajar Ramadhan",
-    license: "Lisensi C",
-    kabKota: "Gowa",
-    phone: "0817-8901-2345",
-    email: "fajar.ramadhan@email.com",
-    rating: 4.0,
-    totalMatches: 15,
-    status: "pending",
-    totalEarnings: 1800000,
-  },
-];
-
-const kabKotaOptions = ["Semua", "Makassar", "Gowa", "Maros", "Takalar"];
-const licenseOptions = ["Semua", "Lisensi A", "Lisensi B", "Lisensi C"];
-const statusOptions = ["Semua", "Aktif", "Non-Aktif", "Pending"];
+import { useReferees, useRefereeStats, LICENSE_LEVELS, getLicenseBadgeColor } from "@/hooks/useReferees";
+import { useKabupatenKotaList } from "@/hooks/useOrganization";
 
 export default function Referees() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
-    kabKota: "Semua",
-    license: "Semua",
-    status: "Semua",
+    kabKota: "",
+    license: "",
+    status: "",
   });
   const [tempFilters, setTempFilters] = useState(filters);
 
-  const activeFilterCount = Object.values(filters).filter((v) => v !== "Semua").length;
-
-  const getStatusValue = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Aktif";
-      case "inactive":
-        return "Non-Aktif";
-      case "pending":
-        return "Pending";
-      default:
-        return status;
-    }
+  // Build query filters
+  const queryFilters = {
+    search: searchQuery || undefined,
+    kabupatenKotaId: filters.kabKota || undefined,
+    licenseLevel: filters.license || undefined,
+    isActive: filters.status === "active" ? true : filters.status === "inactive" ? false : undefined,
   };
 
-  const filteredReferees = referees.filter((referee) => {
-    const matchesSearch = referee.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesKabKota = filters.kabKota === "Semua" || referee.kabKota === filters.kabKota;
-    const matchesLicense = filters.license === "Semua" || referee.license === filters.license;
-    const matchesStatus = filters.status === "Semua" || getStatusValue(referee.status) === filters.status;
-    return matchesSearch && matchesKabKota && matchesLicense && matchesStatus;
-  });
+  const { data: referees, isLoading } = useReferees(queryFilters);
+  const { data: stats } = useRefereeStats();
+  const { data: kabupatenKotaList } = useKabupatenKotaList();
+
+  const activeFilterCount = Object.values(filters).filter((v) => v !== "").length;
 
   const handleApplyFilters = () => {
     setFilters(tempFilters);
@@ -144,14 +59,14 @@ export default function Referees() {
   };
 
   const handleResetFilters = () => {
-    const resetFilters = { kabKota: "Semua", license: "Semua", status: "Semua" };
+    const resetFilters = { kabKota: "", license: "", status: "" };
     setTempFilters(resetFilters);
     setFilters(resetFilters);
   };
 
   const removeFilter = (key: keyof typeof filters) => {
-    setFilters((prev) => ({ ...prev, [key]: "Semua" }));
-    setTempFilters((prev) => ({ ...prev, [key]: "Semua" }));
+    setFilters((prev) => ({ ...prev, [key]: "" }));
+    setTempFilters((prev) => ({ ...prev, [key]: "" }));
   };
 
   return (
@@ -161,22 +76,20 @@ export default function Referees() {
         <div className="grid grid-cols-3 gap-3">
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-primary">{referees.length}</p>
+              <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
               <p className="text-xs text-muted-foreground">Total Wasit</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-success">
-                {referees.filter((r) => r.status === "active").length}
-              </p>
+              <p className="text-2xl font-bold text-success">{stats?.active || 0}</p>
               <p className="text-xs text-muted-foreground">Aktif</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-primary">4.5</p>
-              <p className="text-xs text-muted-foreground">Avg Rating</p>
+              <p className="text-2xl font-bold text-muted-foreground">{stats?.inactive || 0}</p>
+              <p className="text-xs text-muted-foreground">Non-Aktif</p>
             </CardContent>
           </Card>
         </div>
@@ -213,16 +126,15 @@ export default function Referees() {
                   <Label>Kab/Kota</Label>
                   <Select
                     value={tempFilters.kabKota}
-                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, kabKota: value }))}
+                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, kabKota: value === "all" ? "" : value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Kab/Kota" />
+                      <SelectValue placeholder="Semua Kab/Kota" />
                     </SelectTrigger>
                     <SelectContent>
-                      {kabKotaOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
+                      <SelectItem value="all">Semua Kab/Kota</SelectItem>
+                      {kabupatenKotaList?.map((kk) => (
+                        <SelectItem key={kk.id} value={kk.id}>{kk.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -231,16 +143,15 @@ export default function Referees() {
                   <Label>Lisensi</Label>
                   <Select
                     value={tempFilters.license}
-                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, license: value }))}
+                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, license: value === "all" ? "" : value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Lisensi" />
+                      <SelectValue placeholder="Semua Lisensi" />
                     </SelectTrigger>
                     <SelectContent>
-                      {licenseOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
+                      <SelectItem value="all">Semua Lisensi</SelectItem>
+                      {LICENSE_LEVELS.map((level) => (
+                        <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -249,17 +160,15 @@ export default function Referees() {
                   <Label>Status</Label>
                   <Select
                     value={tempFilters.status}
-                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, status: value }))}
+                    onValueChange={(value) => setTempFilters((prev) => ({ ...prev, status: value === "all" ? "" : value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Status" />
+                      <SelectValue placeholder="Semua Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="active">Aktif</SelectItem>
+                      <SelectItem value="inactive">Non-Aktif</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -279,10 +188,10 @@ export default function Referees() {
         {/* Active Filter Chips */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2">
-            {filters.kabKota !== "Semua" && (
+            {filters.kabKota && (
               <Badge variant="secondary" className="gap-1 pr-1">
                 <MapPin className="h-3 w-3" />
-                {filters.kabKota}
+                {kabupatenKotaList?.find(k => k.id === filters.kabKota)?.name || filters.kabKota}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -293,7 +202,7 @@ export default function Referees() {
                 </Button>
               </Badge>
             )}
-            {filters.license !== "Semua" && (
+            {filters.license && (
               <Badge variant="secondary" className="gap-1 pr-1">
                 {filters.license}
                 <Button
@@ -306,9 +215,9 @@ export default function Referees() {
                 </Button>
               </Badge>
             )}
-            {filters.status !== "Semua" && (
+            {filters.status && (
               <Badge variant="secondary" className="gap-1 pr-1">
-                {filters.status}
+                {filters.status === "active" ? "Aktif" : "Non-Aktif"}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -324,78 +233,79 @@ export default function Referees() {
 
         {/* Results Count */}
         <p className="text-sm text-muted-foreground">
-          Menampilkan {filteredReferees.length} dari {referees.length} wasit
+          Menampilkan {referees?.length || 0} wasit
         </p>
 
         {/* Referee Grid/List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredReferees.map((referee) => (
-            <Link key={referee.id} to={`/referees/${referee.id}`}>
-              <Card className="hover:shadow-md transition-shadow h-full">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-14 w-14">
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
-                        {referee.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold">{referee.name}</h3>
-                          <p className="text-sm text-muted-foreground">{referee.license}</p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : referees && referees.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {referees.map((referee) => (
+              <Link key={referee.id} to={`/referees/${referee.id}`}>
+                <Card className="hover:shadow-md transition-shadow h-full">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-14 w-14">
+                        <AvatarImage src={referee.profile_photo_url || ""} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+                          {referee.full_name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold">{referee.full_name}</h3>
+                            {referee.license_level && (
+                              <Badge variant="outline" className={`text-xs ${getLicenseBadgeColor(referee.license_level)}`}>
+                                {referee.license_level}
+                              </Badge>
+                            )}
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        {referee.kabKota}
-                      </div>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                          {referee.rating}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {referee.totalMatches} pertandingan
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <StatusBadge
-                          status={
-                            referee.status === "active"
-                              ? "success"
-                              : referee.status === "pending"
-                              ? "warning"
-                              : "neutral"
-                          }
-                        >
-                          {referee.status === "active"
-                            ? "Aktif"
-                            : referee.status === "pending"
-                            ? "Pending"
-                            : "Non-Aktif"}
-                        </StatusBadge>
+                        {referee.kabupaten_kota_name && (
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            {referee.kabupaten_kota_name}
+                          </div>
+                        )}
+                        {referee.afk_origin && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            AFK: {referee.afk_origin}
+                          </p>
+                        )}
+                        <div className="mt-2">
+                          <StatusBadge status={referee.is_active ? "success" : "neutral"}>
+                            {referee.is_active ? "Aktif" : "Non-Aktif"}
+                          </StatusBadge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredReferees.length === 0 && (
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">Tidak ada wasit yang ditemukan</p>
-              <Button variant="link" onClick={handleResetFilters}>
-                Reset filter
-              </Button>
+              <p className="text-muted-foreground">
+                {searchQuery || activeFilterCount > 0 
+                  ? "Tidak ada wasit yang ditemukan" 
+                  : "Belum ada data wasit"}
+              </p>
+              {(searchQuery || activeFilterCount > 0) && (
+                <Button variant="link" onClick={handleResetFilters}>
+                  Reset filter
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -404,6 +314,7 @@ export default function Referees() {
         <Button
           size="lg"
           className="fixed bottom-24 right-4 md:bottom-8 rounded-full shadow-lg h-14 w-14 p-0"
+          onClick={() => navigate("/users")}
         >
           <Plus className="h-6 w-6" />
         </Button>

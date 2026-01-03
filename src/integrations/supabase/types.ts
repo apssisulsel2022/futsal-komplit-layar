@@ -311,9 +311,11 @@ export type Database = {
           created_at: string | null
           full_name: string
           id: string
+          is_active: boolean | null
           is_profile_complete: boolean | null
           kabupaten_kota_id: string | null
           ktp_photo_url: string | null
+          license_expiry: string | null
           license_level: string | null
           license_photo_url: string | null
           occupation: string | null
@@ -326,9 +328,11 @@ export type Database = {
           created_at?: string | null
           full_name: string
           id: string
+          is_active?: boolean | null
           is_profile_complete?: boolean | null
           kabupaten_kota_id?: string | null
           ktp_photo_url?: string | null
+          license_expiry?: string | null
           license_level?: string | null
           license_photo_url?: string | null
           occupation?: string | null
@@ -341,9 +345,11 @@ export type Database = {
           created_at?: string | null
           full_name?: string
           id?: string
+          is_active?: boolean | null
           is_profile_complete?: boolean | null
           kabupaten_kota_id?: string | null
           ktp_photo_url?: string | null
+          license_expiry?: string | null
           license_level?: string | null
           license_photo_url?: string | null
           occupation?: string | null
@@ -457,6 +463,28 @@ export type Database = {
       }
     }
     Functions: {
+      get_referees: {
+        Args: {
+          _is_active?: boolean
+          _kabupaten_kota_id?: string
+          _license_level?: string
+          _search?: string
+        }
+        Returns: {
+          afk_origin: string
+          birth_date: string
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          is_profile_complete: boolean
+          kabupaten_kota_id: string
+          kabupaten_kota_name: string
+          license_expiry: string
+          license_level: string
+          profile_photo_url: string
+        }[]
+      }
       get_user_kabupaten_kota: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
