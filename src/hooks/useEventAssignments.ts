@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type RefereeRole = "UTAMA" | "CADANGAN";
-export type AssignmentStatus = "pending" | "confirmed" | "cancelled";
+export type AssignmentStatus = "pending" | "confirmed" | "cancelled" | "declined";
 
 export interface EventAssignment {
   id: string;
@@ -290,6 +291,71 @@ export function useRemoveAssignment() {
   });
 }
 
+// Confirm or decline assignment (for referees)
+export function useConfirmAssignment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      assignmentId,
+      confirm,
+    }: {
+      assignmentId: string;
+      confirm: boolean;
+    }) => {
+      // Verify the assignment belongs to current user
+      const { data: assignment, error: fetchError } = await supabase
+        .from("event_assignments")
+        .select("*, event:event_id (date, status)")
+        .eq("id", assignmentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!assignment) throw new Error("Penugasan tidak ditemukan");
+      
+      // Verify ownership
+      if (assignment.referee_id !== user?.id) {
+        throw new Error("Anda tidak memiliki akses ke penugasan ini");
+      }
+
+      // Check if event hasn't started yet
+      const eventDate = new Date(assignment.event?.date || "");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (eventDate < today) {
+        throw new Error("Tidak dapat mengubah status untuk event yang sudah lewat");
+      }
+
+      // Update the assignment status
+      const newStatus = confirm ? "confirmed" : "declined";
+      const { data, error } = await supabase
+        .from("event_assignments")
+        .update({ status: newStatus })
+        .eq("id", assignmentId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["referee-events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["referee-assignments"] });
+      toast.success(
+        variables.confirm 
+          ? "Penugasan berhasil dikonfirmasi" 
+          : "Penugasan berhasil ditolak"
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message || "Gagal mengubah status penugasan");
+    },
+  });
+}
+
 // Helper functions
 export function getRoleBadgeVariant(role: RefereeRole): "primary" | "info" {
   return role === "UTAMA" ? "primary" : "info";
@@ -300,6 +366,7 @@ export function getStatusBadgeVariant(status: AssignmentStatus) {
     case "confirmed":
       return "success" as const;
     case "cancelled":
+    case "declined":
       return "error" as const;
     default:
       return "warning" as const;

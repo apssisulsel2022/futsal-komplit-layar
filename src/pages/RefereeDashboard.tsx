@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -18,12 +19,15 @@ import {
   Calendar,
   Bell,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useHonorStats, useHonors } from "@/hooks/useHonors";
-import { useEvents } from "@/hooks/useEvents";
+import { useUpcomingRefereeEvents, usePendingAssignments } from "@/hooks/useRefereeEvents";
 import { useState } from "react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -65,7 +69,8 @@ export default function RefereeDashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: honorStats } = useHonorStats();
   const { data: honors } = useHonors();
-  const { data: events } = useEvents();
+  const { data: upcomingEvents } = useUpcomingRefereeEvents();
+  const { data: pendingAssignments } = usePendingAssignments();
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/referee" },
@@ -160,6 +165,68 @@ export default function RefereeDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Assignment Alert */}
+        {pendingAssignments && pendingAssignments.length > 0 && (
+          <Link to="/referee/events">
+            <Alert className="bg-warning/10 border-warning/30 cursor-pointer hover:bg-warning/15 transition-colors">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-sm text-warning flex items-center justify-between">
+                <span>{pendingAssignments.length} penugasan menunggu konfirmasi</span>
+                <ChevronRight className="h-4 w-4" />
+              </AlertDescription>
+            </Alert>
+          </Link>
+        )}
+
+        {/* Upcoming Events Preview */}
+        {upcomingEvents && upcomingEvents.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                  Event Mendatang
+                </CardTitle>
+                <Link to="/referee/events">
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Lihat Semua
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {upcomingEvents.slice(0, 2).map((assignment) => (
+                <div 
+                  key={assignment.id} 
+                  className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                >
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Trophy className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {assignment.event?.name}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        {assignment.event?.date 
+                          ? format(new Date(assignment.event.date), "dd MMM yyyy", { locale: id })
+                          : "-"
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  <StatusBadge status={assignment.role === "UTAMA" ? "primary" : "info"}>
+                    {assignment.role}
+                  </StatusBadge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pending Honor Alert */}
         {pendingAmount > 0 && (

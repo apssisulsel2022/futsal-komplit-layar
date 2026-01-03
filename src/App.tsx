@@ -36,6 +36,7 @@ import AuditLogs from "./pages/AuditLogs";
 
 // Referee pages
 import RefereeDashboard from "./pages/RefereeDashboard";
+import RefereeEvents from "./pages/RefereeEvents";
 import RefereeHonor from "./pages/RefereeHonor";
 import RefereeProfile from "./pages/RefereeProfile";
 import RefereeProfileComplete from "./pages/RefereeProfileComplete";
@@ -206,6 +207,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole="wasit" requireProfileComplete>
                   <RefereeDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/events" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <RefereeEvents />
                 </ProtectedRoute>
               } 
             />
