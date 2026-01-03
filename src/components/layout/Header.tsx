@@ -1,4 +1,4 @@
-import { Bell, Menu, User } from "lucide-react";
+import { Bell, Menu, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   title?: string;
@@ -15,6 +17,14 @@ interface HeaderProps {
 }
 
 export const Header = ({ title = "FFSS", onMenuClick }: HeaderProps) => {
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-md">
       <div className="flex items-center justify-between px-4 py-3">
@@ -64,7 +74,10 @@ export const Header = ({ title = "FFSS", onMenuClick }: HeaderProps) => {
               <DropdownMenuItem>Profil Saya</DropdownMenuItem>
               <DropdownMenuItem>Pengaturan</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">Keluar</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Keluar
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

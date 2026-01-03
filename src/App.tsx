@@ -26,6 +26,7 @@ import AdminHonorMonitoring from "./pages/AdminHonorMonitoring";
 import Evaluations from "./pages/Evaluations";
 import Organization from "./pages/Organization";
 import Approvals from "./pages/Approvals";
+import UserManagement from "./pages/UserManagement";
 
 // Referee pages
 import RefereeDashboard from "./pages/RefereeDashboard";
@@ -149,6 +150,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
                   <Approvals />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute requireRole="admin_provinsi" requireProfileComplete>
+                  <UserManagement />
                 </ProtectedRoute>
               } 
             />
