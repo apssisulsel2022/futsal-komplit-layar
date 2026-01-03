@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if requesting user is admin_provinsi
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -71,6 +72,40 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if target user is also admin_provinsi (prevent deleting other admin_provinsi)
+    const { data: targetRoleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user_id)
+      .eq("role", "admin_provinsi")
+      .maybeSingle();
+
+    if (targetRoleData) {
+      return new Response(
+        JSON.stringify({ error: "Cannot delete another admin_provinsi account" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get user info for logging before deletion
+    const { data: targetProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, kabupaten_kota_id")
+      .eq("id", user_id)
+      .maybeSingle();
+
+    // Log the deletion action to audit_logs before deleting
+    await supabaseAdmin
+      .from("audit_logs")
+      .insert({
+        action: "USER_DELETED",
+        entity_type: "profiles",
+        entity_id: user_id,
+        actor_id: requestingUser.id,
+        old_data: targetProfile ? { full_name: targetProfile.full_name, kabupaten_kota_id: targetProfile.kabupaten_kota_id } : null,
+        metadata: { deleted_by: requestingUser.id }
+      });
+
     // Delete user using admin API
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
@@ -81,6 +116,8 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`User ${user_id} deleted successfully by ${requestingUser.id}`);
 
     return new Response(
       JSON.stringify({ success: true }),
