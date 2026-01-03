@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchProfileStatus = async (userId: string) => {
+  const fetchProfileStatus = async (userId: string, userEmail?: string) => {
     const { data } = await supabase
       .from("profiles")
       .select("is_profile_complete, kabupaten_kota_id, registration_status, requested_role")
@@ -59,6 +59,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setKabupatenKotaId(data.kabupaten_kota_id || null);
       setRegistrationStatus(data.registration_status as RegistrationStatus);
       setRequestedRole(data.requested_role || null);
+    } else {
+      // Auto-create profile if missing
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          full_name: userEmail || "User",
+          is_profile_complete: false,
+          registration_status: "approved",
+          is_active: true,
+        });
+      
+      if (!error) {
+        setIsProfileComplete(false);
+        setRegistrationStatus("approved");
+      }
     }
   };
 
@@ -82,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setTimeout(() => {
             fetchUserRole(session.user.id);
-            fetchProfileStatus(session.user.id);
+            fetchProfileStatus(session.user.id, session.user.email);
           }, 0);
         } else {
           setRole(null);
@@ -101,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (session?.user) {
         fetchUserRole(session.user.id);
-        fetchProfileStatus(session.user.id);
+        fetchProfileStatus(session.user.id, session.user.email);
       }
       
       setIsLoading(false);
