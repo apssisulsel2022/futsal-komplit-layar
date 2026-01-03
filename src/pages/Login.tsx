@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Star, ArrowRight } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,6 +198,26 @@ export default function Login() {
               </Link>
             </div>
           </form>
+        </div>
+
+        {/* Public Review CTA */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-xl p-4 mt-4 border border-amber-200 dark:border-amber-800">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
+              <Star className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">Beri Penilaian Wasit</h3>
+              <p className="text-xs text-muted-foreground">
+                Bantu tingkatkan kualitas wasit dengan ulasan Anda
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild className="shrink-0">
+              <Link to="/review">
+                Review <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Footer */}
