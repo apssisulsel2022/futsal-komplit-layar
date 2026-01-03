@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "admin" | "referee";
+export type AppRole = "admin_provinsi" | "admin_kab_kota" | "panitia" | "wasit" | "evaluator";
 
 interface AuthContextType {
   user: User | null;
@@ -10,10 +10,12 @@ interface AuthContextType {
   isLoading: boolean;
   role: AppRole | null;
   isProfileComplete: boolean;
+  kabupatenKotaId: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  isAdmin: () => boolean;
+  isAdminProvinsi: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [kabupatenKotaId, setKabupatenKotaId] = useState<string | null>(null);
 
   const fetchUserRole = async (userId: string) => {
     const { data } = await supabase
@@ -34,18 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (data) {
       setRole(data.role as AppRole);
+    } else {
+      setRole(null);
     }
   };
 
   const fetchProfileStatus = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("is_profile_complete")
+      .select("is_profile_complete, kabupaten_kota_id")
       .eq("id", userId)
       .maybeSingle();
     
     if (data) {
       setIsProfileComplete(data.is_profile_complete || false);
+      setKabupatenKotaId(data.kabupaten_kota_id || null);
     }
   };
 
@@ -74,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setRole(null);
           setIsProfileComplete(false);
+          setKabupatenKotaId(null);
         }
         
         setIsLoading(false);
@@ -104,28 +111,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-    return { error: error as Error | null };
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setRole(null);
     setIsProfileComplete(false);
+    setKabupatenKotaId(null);
+  };
+
+  const isAdmin = () => {
+    return role === "admin_provinsi" || role === "admin_kab_kota";
+  };
+
+  const isAdminProvinsi = () => {
+    return role === "admin_provinsi";
   };
 
   return (
@@ -136,10 +136,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         role,
         isProfileComplete,
+        kabupatenKotaId,
         signIn,
-        signUp,
         signOut,
         refreshProfile,
+        isAdmin,
+        isAdminProvinsi,
       }}
     >
       {children}

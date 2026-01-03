@@ -6,11 +6,11 @@ export function useReferees() {
   return useQuery({
     queryKey: ["referees"],
     queryFn: async () => {
-      // Get all users with referee role
+      // Get all users with wasit role
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "referee");
+        .eq("role", "wasit");
 
       if (roleError) throw roleError;
 

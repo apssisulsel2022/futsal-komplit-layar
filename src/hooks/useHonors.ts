@@ -23,10 +23,10 @@ export interface Honor {
 }
 
 export function useHonors() {
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useQuery({
-    queryKey: ["honors", user?.id, role],
+    queryKey: ["honors", user?.id, isAdmin()],
     queryFn: async () => {
       if (!user) return [];
 
@@ -43,8 +43,8 @@ export function useHonors() {
         `)
         .order("created_at", { ascending: false });
 
-      // Referees only see their own honors, admins see all
-      if (role !== "admin") {
+      // Non-admins only see their own honors
+      if (!isAdmin()) {
         query = query.eq("referee_id", user.id);
       }
 
@@ -58,7 +58,7 @@ export function useHonors() {
 
 export function useCreateHonor() {
   const queryClient = useQueryClient();
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useMutation({
     mutationFn: async (honor: {
@@ -83,7 +83,7 @@ export function useCreateHonor() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, role] });
+      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, isAdmin()] });
       toast.success("Honor berhasil ditambahkan");
     },
     onError: (error) => {
@@ -94,7 +94,7 @@ export function useCreateHonor() {
 
 export function useUpdateHonor() {
   const queryClient = useQueryClient();
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Honor> & { id: string }) => {
@@ -109,7 +109,7 @@ export function useUpdateHonor() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, role] });
+      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, isAdmin()] });
       toast.success("Honor berhasil diperbarui");
     },
     onError: (error) => {
@@ -120,7 +120,7 @@ export function useUpdateHonor() {
 
 export function useVerifyHonor() {
   const queryClient = useQueryClient();
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "verified" | "rejected" }) => {
@@ -141,7 +141,7 @@ export function useVerifyHonor() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, role] });
+      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, isAdmin()] });
       toast.success(
         variables.status === "verified" 
           ? "Honor berhasil diverifikasi" 
@@ -156,7 +156,7 @@ export function useVerifyHonor() {
 
 export function useDeleteHonor() {
   const queryClient = useQueryClient();
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -168,7 +168,7 @@ export function useDeleteHonor() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, role] });
+      queryClient.invalidateQueries({ queryKey: ["honors", user?.id, isAdmin()] });
       toast.success("Honor berhasil dihapus");
     },
     onError: (error) => {
@@ -178,16 +178,16 @@ export function useDeleteHonor() {
 }
 
 export function useHonorStats() {
-  const { user, role } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return useQuery({
-    queryKey: ["honor-stats", user?.id, role],
+    queryKey: ["honor-stats", user?.id, isAdmin()],
     queryFn: async () => {
       if (!user) return { verified: 0, pending: 0, total: 0 };
 
       let query = supabase.from("honors").select("amount, status");
       
-      if (role !== "admin") {
+      if (!isAdmin()) {
         query = query.eq("referee_id", user.id);
       }
 
