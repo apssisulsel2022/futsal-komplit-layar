@@ -8,6 +8,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Public pages
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PublicRefereeList from "./pages/PublicRefereeList";
 import PublicRefereeDetail from "./pages/PublicRefereeDetail";
@@ -53,8 +55,9 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
-            {/* Profile completion - no profile complete requirement */}
             <Route 
               path="/referee/profile/complete" 
               element={
