@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, Calendar, MapPin, Users, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Calendar, MapPin, ChevronRight, Loader2, CalendarDays } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -40,6 +40,9 @@ export default function Events() {
               className="pl-9"
             />
           </div>
+          <Button variant="outline" size="icon" onClick={() => navigate("/events/calendar")} title="Lihat Kalender">
+            <CalendarDays className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>

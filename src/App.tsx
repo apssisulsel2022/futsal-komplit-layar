@@ -24,6 +24,7 @@ import Dashboard from "./pages/Dashboard";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import EventSubmission from "./pages/EventSubmission";
+import EventCalendar from "./pages/EventCalendar";
 import Referees from "./pages/Referees";
 import RefereeDetail from "./pages/RefereeDetail";
 import RefereeAssignment from "./pages/RefereeAssignment";
@@ -119,6 +120,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "panitia"]} requireProfileComplete>
                   <EventSubmission />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/events/calendar" 
+              element={
+                <ProtectedRoute requireRole={["admin_provinsi", "admin_kab_kota", "panitia"]} requireProfileComplete>
+                  <EventCalendar />
                 </ProtectedRoute>
               } 
             />
