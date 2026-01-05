@@ -20,6 +20,8 @@ import {
   Bell,
   Loader2,
   AlertCircle,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -75,7 +77,8 @@ export default function RefereeDashboard() {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/referee" },
     { icon: CalendarDays, label: "Event", path: "/referee/events" },
-    { icon: Wallet, label: "Honor", path: "/referee/honor" },
+    { icon: BookOpen, label: "Belajar", path: "/referee/learning" },
+    { icon: MessageSquare, label: "Diskusi", path: "/referee/discussions" },
     { icon: User, label: "Profil", path: "/referee/profile" },
   ];
 
@@ -345,7 +348,7 @@ export default function RefereeDashboard() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-5 h-16">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (

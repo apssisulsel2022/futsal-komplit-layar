@@ -44,6 +44,11 @@ import RefereeHonor from "./pages/RefereeHonor";
 import RefereeProfile from "./pages/RefereeProfile";
 import RefereeProfileComplete from "./pages/RefereeProfileComplete";
 import ProfileComplete from "./pages/ProfileComplete";
+import LearningModules from "./pages/LearningModules";
+import LearningMaterialDetail from "./pages/LearningMaterialDetail";
+import Discussions from "./pages/Discussions";
+import DiscussionDetail from "./pages/DiscussionDetail";
+import DiscussionNew from "./pages/DiscussionNew";
 
 const queryClient = new QueryClient();
 
@@ -258,6 +263,46 @@ const App = () => (
               element={
                 <ProtectedRoute requireRole="wasit" requireProfileComplete>
                   <RefereeProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/learning" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <LearningModules />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/learning/:id" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <LearningMaterialDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/discussions" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <Discussions />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/discussions/new" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <DiscussionNew />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/referee/discussions/:id" 
+              element={
+                <ProtectedRoute requireRole="wasit" requireProfileComplete>
+                  <DiscussionDetail />
                 </ProtectedRoute>
               } 
             />
