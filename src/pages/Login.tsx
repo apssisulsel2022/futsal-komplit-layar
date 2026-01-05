@@ -102,7 +102,7 @@ export default function Login() {
       <div className="flex-1 px-6 -mt-8">
         <div className="bg-card rounded-2xl shadow-lg border border-border p-6 animate-fade-in">
           <h2 className="text-lg font-bold text-center mb-1">
-            Login Sistem Federasi Futsal
+            Login Sistem Asosiasi Futsal Provinsi Sulawesi Selatan
           </h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
             Masuk untuk mengelola event dan wasit
